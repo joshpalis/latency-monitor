@@ -10,5 +10,6 @@ package org.opensearch.latencymonitor;
 import org.opensearch.test.OpenSearchTestCase;
 
 public class LatencyMonitorTests extends OpenSearchTestCase {
-    // Add unit tests for your plugin
+
+    // Unit Test Considerations
 }

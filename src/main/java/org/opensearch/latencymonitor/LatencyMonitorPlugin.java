@@ -36,7 +36,9 @@ public class LatencyMonitorPlugin extends Plugin {
             public void beforeIndexCreated(Index index, Settings indexSettings){
 
                 // Placeholder reaction
-                throw new OpenSearchException("Test : Custom Plugin");
+                throw new OpenSearchException("Test : Latency Monitor Plugin is Called");
+
+
             }
         });
     }

@@ -34,6 +34,6 @@ public class LatencyMonitorPluginIT extends OpenSearchIntegTestCase {
         String body = EntityUtils.toString(response.getEntity());
 
         logger.info("response body: {}", body);
-        assertThat(body, containsString("LatencyMonitor"));
+        assertThat(body, containsString("latency-monitor"));
     }
 }
