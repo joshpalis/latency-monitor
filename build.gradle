@@ -5,11 +5,11 @@ apply plugin: 'idea'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.yaml-rest-test'
 
-def pluginName = 'rename'
-def pluginDescription = 'Custom plugin'
+def pluginName = 'LatencyMonitor'
+def pluginDescription = 'An OpenSearch plugin to perform latency testing'
 def projectPath = 'org.opensearch'
-def pathToPlugin = 'path.to.plugin'
-def pluginClassName = 'RenamePlugin'
+def pathToPlugin = 'latencymonitor'
+def pluginClassName = 'LatencyMonitorPlugin'
 
 tasks.register("preparePluginPathDirs") {
     mustRunAfter clean
