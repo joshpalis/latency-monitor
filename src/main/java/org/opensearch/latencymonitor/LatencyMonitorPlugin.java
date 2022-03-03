@@ -8,10 +8,21 @@
 package org.opensearch.latencymonitor;
 import org.opensearch.OpenSearchException;
 import org.opensearch.index.IndexModule;
+import org.opensearch.index.IndexService;
+import org.opensearch.index.engine.Engine;
 import org.opensearch.index.Index;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.index.shard.IndexEventListener;
+import org.opensearch.index.shard.IndexingOperationListener;
+import org.opensearch.index.shard.SearchOperationListener;
+import org.opensearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.search.internal.SearchContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+
+import org.opensearch.index.shard.ShardId;
 
 public class LatencyMonitorPlugin extends Plugin {
     
@@ -24,21 +35,47 @@ public class LatencyMonitorPlugin extends Plugin {
     //      - addIndexEventListener is a primary extension point for plugins
     //      - using the event listener, I can call beforeIndexCreated / afterIndexCreated
 
-    // hook into plugin extension point
+    private static final Logger logger = LogManager.getLogger(LatencyMonitorPlugin.class);
+
+    // hook into plugin extension point for index events
     @Override
     public void onIndexModule(IndexModule module) {
 
-        // attatch index event listener to given module
+
         module.addIndexEventListener(new IndexEventListener() {
             
             // monitor index event creation
             @Override
             public void beforeIndexCreated(Index index, Settings indexSettings){
 
-                // Placeholder reaction
-                throw new OpenSearchException("Test : Latency Monitor Plugin is Called");
+                logger.info("TEST INDEX EVENT : BEFORE INDEX CREATED");
+            }
 
+            @Override
+            public void beforeIndexRemoved(IndexService indexService, IndexRemovalReason reason) {
 
+                logger.info("TEST INDEX EVENT : BEFORE INDEX REMOVED");
+            }
+        });
+
+        module.addIndexOperationListener(new IndexingOperationListener() {
+
+            @Override
+            public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result){
+                logger.info("TEST INDEX OPERATION : POST INDEX");
+            }
+
+            @Override
+            public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result){
+                logger.info("TEST INDEX OPERATION : POST DELETE");
+            }
+        });
+
+        module.addSearchOperationListener(new SearchOperationListener() {
+            
+            @Override
+            public void onPreQueryPhase(SearchContext searchContext){
+                logger.info("TEST SEARCH OPERATION : PRE QUERY PHASE");
             }
         });
     }
