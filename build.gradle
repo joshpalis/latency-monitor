@@ -8,7 +8,7 @@ apply plugin: 'opensearch.yaml-rest-test'
 def pluginName = 'latency-tester'
 def pluginDescription = 'An OpenSearch plugin to perform latency testing'
 def projectPath = 'org.opensearch'
-def pathToPlugin = 'latencytester'
+def pathToPlugin = 'latencytester.plugin'
 def pluginClassName = 'LatencyTesterPlugin'
 
 tasks.register("preparePluginPathDirs") {

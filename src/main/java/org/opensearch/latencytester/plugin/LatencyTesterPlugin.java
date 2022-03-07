@@ -5,7 +5,7 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.opensearch.latencytester;
+package org.opensearch.latencytester.plugin;
 import org.opensearch.OpenSearchException;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.IndexService;
