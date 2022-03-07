@@ -5,11 +5,11 @@ apply plugin: 'idea'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.yaml-rest-test'
 
-def pluginName = 'latency-monitor'
+def pluginName = 'latency-tester'
 def pluginDescription = 'An OpenSearch plugin to perform latency testing'
 def projectPath = 'org.opensearch'
-def pathToPlugin = 'latencymonitor'
-def pluginClassName = 'LatencyMonitorPlugin'
+def pathToPlugin = 'latencytester'
+def pluginClassName = 'LatencyTesterPlugin'
 
 tasks.register("preparePluginPathDirs") {
     mustRunAfter clean
@@ -37,7 +37,7 @@ validateNebulaPom.enabled = false
 
 buildscript {
     ext {
-        opensearch_version = "1.2.4-SNAPSHOT"
+        opensearch_version = "2.0.0-SNAPSHOT"
     }
 
     repositories {

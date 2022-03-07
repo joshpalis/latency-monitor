@@ -5,7 +5,7 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.opensearch.latencymonitor;
+package org.opensearch.latencytester;
 import org.opensearch.OpenSearchException;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.IndexService;
@@ -24,7 +24,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 
 import org.opensearch.index.shard.ShardId;
 
-public class LatencyMonitorPlugin extends Plugin {
+public class LatencyTesterPlugin extends Plugin {
     
     // goal : 
     //      - build a new plugin and call this in the critical lifecycle of searching / indexing
@@ -35,7 +35,7 @@ public class LatencyMonitorPlugin extends Plugin {
     //      - addIndexEventListener is a primary extension point for plugins
     //      - using the event listener, I can call beforeIndexCreated / afterIndexCreated
 
-    private static final Logger logger = LogManager.getLogger(LatencyMonitorPlugin.class);
+    private static final Logger logger = LogManager.getLogger(LatencyTesterPlugin.class);
 
     // hook into plugin extension point for index events
     @Override
@@ -43,8 +43,6 @@ public class LatencyMonitorPlugin extends Plugin {
 
 
         module.addIndexEventListener(new IndexEventListener() {
-            
-            // monitor index event creation
             @Override
             public void beforeIndexCreated(Index index, Settings indexSettings){
 
