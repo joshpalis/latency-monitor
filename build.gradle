@@ -1,39 +1,5 @@
-import org.opensearch.gradle.test.RestIntegTestTask
-
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'opensearch.opensearchplugin'
-apply plugin: 'opensearch.yaml-rest-test'
-
-def pluginName = 'latency-tester'
-def pluginDescription = 'An OpenSearch plugin to perform latency testing'
-def projectPath = 'org.opensearch'
-def pathToPlugin = 'latencytester.plugin'
-def pluginClassName = 'LatencyTesterPlugin'
-
-tasks.register("preparePluginPathDirs") {
-    mustRunAfter clean
-    doLast {
-        def newPath = pathToPlugin.replace(".", "/")
-        mkdir "src/main/java/org/opensearch/$newPath"
-        mkdir "src/test/java/org/opensearch/$newPath"
-        mkdir "src/yamlRestTest/java/org/opensearch/$newPath"
-    }
-}
-
-opensearchplugin {
-    name pluginName
-    description pluginDescription
-    classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
-    licenseFile rootProject.file('LICENSE.txt')
-    noticeFile rootProject.file('NOTICE.txt')
-}
-
-// This requires an additional Jar not published as part of build-tools
-loggerUsageCheck.enabled = false
-
-// No need to validate pom, as we do not upload to maven/sonatype
-validateNebulaPom.enabled = false
+import org.opensearch.gradle.info.BuildParams
+import java.util.concurrent.Callable
 
 buildscript {
     ext {
@@ -52,6 +18,15 @@ buildscript {
     }
 }
 
+plugins {
+    id 'java'
+    id 'java-library'
+    id 'idea'
+    id 'application'
+}
+
+version '2.0.0-SNAPSHOT'
+
 repositories {
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
@@ -59,31 +34,29 @@ repositories {
     maven { url "https://plugins.gradle.org/m2/" }
 }
 
-test {
-    include '**/*Tests.class'
+ext {
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE.txt')
 }
 
-task integTest(type: RestIntegTestTask) {
-    description = "Run tests against a cluster"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-}
-tasks.named("check").configure { dependsOn(integTest) }
+allprojects {
+    version = opensearch_version - "-SNAPSHOT" + ".0"
+    if (isSnapshot) {
+        version += "-SNAPSHOT"
+    }
 
-integTest {
-    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    plugins.withId('java') {
+        sourceCompatibility = targetCompatibility = "1.8"
     }
 }
 
-testClusters.integTest {
-    testDistribution = "INTEG_TEST"
+mainClassName = 'org.opensearch.latencytester.plugin.RunPlugin'
 
-    // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
-}
-
-run {
-    useCluster testClusters.integTest
+dependencies {
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: '2.17.1'
+    implementation group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.17.1'
+    api "org.opensearch:opensearch:${opensearch_version}"
+    api "org.opensearch.plugin:opensearch-scripting-painless-spi:2.0.0-SNAPSHOT"
+    testImplementation "org.opensearch.test:framework:${opensearch_version}"
 }
