@@ -6,7 +6,6 @@
  * compatible open source license.
  */
 package org.opensearch.latencytester.plugin;
-import org.opensearch.OpenSearchException;
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.engine.Engine;
@@ -20,7 +19,6 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.search.internal.SearchContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
 
 import org.opensearch.index.shard.ShardId;
 
