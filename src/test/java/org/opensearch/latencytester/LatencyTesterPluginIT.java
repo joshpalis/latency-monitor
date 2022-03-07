@@ -11,6 +11,7 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.http.util.EntityUtils;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
+import org.opensearch.latencytester.plugin.LatencyTesterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
