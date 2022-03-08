@@ -68,7 +68,7 @@ public class RunPlugin {
         NetworkService networkService = new NetworkService(Collections.emptyList());
         PageCacheRecycler pageCacheRecycler = new PageCacheRecycler(settings);
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(
-            new SearchModule(Settings.EMPTY, false, Collections.emptyList()).getNamedWriteables()
+            new SearchModule(Settings.EMPTY, Collections.emptyList()).getNamedWriteables()
         );
         
         final CircuitBreakerService circuitBreakerService = new NoneCircuitBreakerService();
