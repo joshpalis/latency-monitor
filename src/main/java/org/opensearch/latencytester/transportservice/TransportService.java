@@ -43,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -72,6 +73,8 @@ public class TransportService extends AbstractLifecycleComponent
         }
     );
 
+    private final AtomicBoolean handleIncomingRequests = new AtomicBoolean();
+
     public TransportService(
         Transport transport,
         ConnectionManager connectionManager,
@@ -89,6 +92,8 @@ public class TransportService extends AbstractLifecycleComponent
         this.asyncSender = interceptor.interceptSender(this::sendRequestInternal);
         ;
     }
+
+    
 
     @Override
     protected void doStart() {
@@ -396,6 +401,15 @@ public class TransportService extends AbstractLifecycleComponent
     @Override
     protected void doClose() throws IOException {
 
+    }
+
+    /**
+     * start accepting incoming requests.
+     * when the transport layer starts up it will block any incoming requests until
+     * this method is called
+     */
+    public final void acceptIncomingRequests() {
+        handleIncomingRequests.set(true);
     }
 
     @Override
