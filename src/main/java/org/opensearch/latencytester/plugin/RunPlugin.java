@@ -19,7 +19,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.PageCacheRecycler;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.indices.breaker.NoneCircuitBreakerService;
-import org.opensearch.search.SearchModule;
+import org.opensearch.search.SearchModule.*;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.*;
 import org.opensearch.latencytester.transportservice.transport.ClusterConnectionManager;
@@ -73,7 +73,6 @@ public class RunPlugin {
         
         final CircuitBreakerService circuitBreakerService = new NoneCircuitBreakerService();
 
-        // 
         Netty transport = new Netty(
             settings,
             Version.CURRENT,
