@@ -19,8 +19,12 @@ buildscript {
 }
 
 plugins {
-    id 'java'
+    id 'nebula.ospackage' version "8.3.0"
     id 'java-library'
+    id "io.freefair.lombok" version "5.0.0-rc4"
+    id 'jacoco'
+    id "com.diffplug.spotless" version "6.3.0" apply false
+    id 'java'
     id 'idea'
     id 'application'
 }
@@ -90,4 +94,24 @@ dependencies {
     // HACK: javax.xml.bind was removed from default modules in java 9, so we pull the api in here,
     // and whitelist this hack in JarHell
     api 'javax.xml.bind:jaxb-api:2.2.2'
+}
+
+compileJava.options.warnings = false
+compileJava {
+    options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
+    doFirst {
+        // TODO: do not fail build on warnings, need to fix all compiler warnings
+        options.compilerArgs.remove('-Werror')
+        // TODO: need to fix all java doc format
+        options.compilerArgs.remove('-Xdoclint:all')
+    }
+}
+// TODO: Similarly, need to fix compiling errors in test source code
+compileTestJava.options.warnings = false
+compileTestJava {
+    options.compilerArgs.addAll(["-processor", 'lombok.launch.AnnotationProcessorHider$AnnotationProcessor'])
+    doFirst {
+        options.compilerArgs.remove('-Werror')
+        options.compilerArgs.remove('-Xdoclint:all')
+    }
 }
