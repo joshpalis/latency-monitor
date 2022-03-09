@@ -100,9 +100,8 @@ public class RunPlugin {
 
         transportService.start();
 
-        // TODO : Call transport service and accept incoming requests
-        //transportService.acceptIncomingRequests()
-        //call plugin class latencytesterplugin
+        transportService.acceptIncomingRequests();
+        LatencyTesterPlugin latencyTesterPlugin = new LatencyTesterPlugin();
 
         // Test Test Test
 
