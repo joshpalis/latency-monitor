@@ -4,17 +4,29 @@
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
- * SPDX-License-Identifier: Apache-2.0
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/*
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
  */
 
 package org.opensearch.latencytester.transportservice.transport;
@@ -33,6 +45,7 @@ import org.opensearch.common.util.concurrent.AbstractLifecycleRunnable;
 import org.opensearch.common.util.concurrent.ConcurrentCollections;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.ConnectionProfile;
+import org.opensearch.transport.TcpChannel;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -48,7 +61,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class TransportKeepAlive implements Closeable {
 
-    static final int PING_DATA_SIZE = -1;
+    public static final int PING_DATA_SIZE = -1;
 
     private static final BytesReference PING_MESSAGE;
 
@@ -69,16 +82,16 @@ public final class TransportKeepAlive implements Closeable {
     private final ConcurrentMap<TimeValue, ScheduledPing> pingIntervals = ConcurrentCollections.newConcurrentMap();
     private final Lifecycle lifecycle = new Lifecycle();
     private final ThreadPool threadPool;
-    private final AsyncBiFunction<TcpChannel, BytesReference, Void> pingSender;
+    private final AsyncBiFunction<org.opensearch.latencytester.transportservice.transport.TcpChannel, BytesReference, Void> pingSender;
 
-    public TransportKeepAlive(ThreadPool threadPool, AsyncBiFunction<TcpChannel, BytesReference, Void> pingSender) {
+    public TransportKeepAlive(ThreadPool threadPool, AsyncBiFunction<org.opensearch.latencytester.transportservice.transport.TcpChannel, BytesReference, Void> pingSender) {
         this.threadPool = threadPool;
         this.pingSender = pingSender;
 
         this.lifecycle.moveToStarted();
     }
 
-    void registerNodeConnection(List<TcpChannel> nodeChannels, ConnectionProfile connectionProfile) {
+    public void registerNodeConnection(List<org.opensearch.latencytester.transportservice.transport.TcpChannel> nodeChannels, ConnectionProfile connectionProfile) {
         TimeValue pingInterval = connectionProfile.getPingInterval();
         if (pingInterval.millis() < 0) {
             return;
@@ -87,7 +100,7 @@ public final class TransportKeepAlive implements Closeable {
         final ScheduledPing scheduledPing = pingIntervals.computeIfAbsent(pingInterval, ScheduledPing::new);
         scheduledPing.ensureStarted();
 
-        for (TcpChannel channel : nodeChannels) {
+        for (org.opensearch.latencytester.transportservice.transport.TcpChannel channel : nodeChannels) {
             scheduledPing.addChannel(channel);
             channel.addCloseListener(ActionListener.wrap(() -> scheduledPing.removeChannel(channel)));
         }
@@ -100,7 +113,7 @@ public final class TransportKeepAlive implements Closeable {
      *
      * @param channel that received the keep alive ping
      */
-    void receiveKeepAlive(TcpChannel channel) {
+    void receiveKeepAlive(org.opensearch.latencytester.transportservice.transport.TcpChannel channel) {
         // The client-side initiates pings and the server-side responds. So if this is a client channel, this
         // method is a no-op.
         if (channel.isServerChannel()) {
@@ -116,7 +129,7 @@ public final class TransportKeepAlive implements Closeable {
         return failedPings.count();
     }
 
-    private void sendPing(TcpChannel channel) {
+    private void sendPing(org.opensearch.latencytester.transportservice.transport.TcpChannel channel) {
         pingSender.apply(channel, PING_MESSAGE, new ActionListener<Void>() {
 
             @Override
@@ -148,7 +161,7 @@ public final class TransportKeepAlive implements Closeable {
 
         private final TimeValue pingInterval;
 
-        private final Set<TcpChannel> channels = ConcurrentCollections.newConcurrentSet();
+        private final Set<org.opensearch.latencytester.transportservice.transport.TcpChannel> channels = ConcurrentCollections.newConcurrentSet();
 
         private final AtomicBoolean isStarted = new AtomicBoolean(false);
         private volatile long lastPingRelativeMillis;
@@ -165,17 +178,17 @@ public final class TransportKeepAlive implements Closeable {
             }
         }
 
-        void addChannel(TcpChannel channel) {
+        void addChannel(org.opensearch.latencytester.transportservice.transport.TcpChannel channel) {
             channels.add(channel);
         }
 
-        void removeChannel(TcpChannel channel) {
+        void removeChannel(org.opensearch.latencytester.transportservice.transport.TcpChannel channel) {
             channels.remove(channel);
         }
 
         @Override
         protected void doRunInLifecycle() {
-            for (TcpChannel channel : channels) {
+            for (org.opensearch.latencytester.transportservice.transport.TcpChannel channel : channels) {
                 // In the future it is possible that we may want to kill a channel if we have not read from
                 // the channel since the last ping. However, this will need to be backwards compatible with
                 // pre-6.6 nodes that DO NOT respond to pings
@@ -196,8 +209,8 @@ public final class TransportKeepAlive implements Closeable {
             logger.warn("failed to send ping transport message", e);
         }
 
-        private boolean needsKeepAlivePing(TcpChannel channel) {
-            TcpChannel.ChannelStats stats = channel.getChannelStats();
+        private boolean needsKeepAlivePing(org.opensearch.latencytester.transportservice.transport.TcpChannel channel) {
+            org.opensearch.latencytester.transportservice.transport.TcpChannel.ChannelStats stats = channel.getChannelStats();
             long accessedDelta = stats.lastAccessedTime() - lastPingRelativeMillis;
             return accessedDelta <= 0;
         }

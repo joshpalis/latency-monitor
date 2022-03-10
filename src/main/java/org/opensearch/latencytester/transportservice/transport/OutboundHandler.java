@@ -1,21 +1,35 @@
-/*
+package org.opensearch.latencytester.transportservice.transport;/*
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
+ */
+
+/*
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
 
-package org.opensearch.latencytester.transportservice.transport;/*
-                                                      * SPDX-License-Identifier: Apache-2.0
-                                                      *
-                                                      * The OpenSearch Contributors require contributions made to
-                                                      * this file be licensed under the Apache-2.0 license or a
-                                                      * compatible open source license.
-                                                      */
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -38,6 +52,7 @@ import org.opensearch.core.internal.io.IOUtils;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.*;
 
+
 import java.io.IOException;
 import java.util.Set;
 
@@ -54,12 +69,12 @@ public final class OutboundHandler {
     private volatile TransportMessageListener messageListener = TransportMessageListener.NOOP_LISTENER;
 
     public OutboundHandler(
-        String nodeName,
-        Version version,
-        String[] features,
-        StatsTracker statsTracker,
-        ThreadPool threadPool,
-        BigArrays bigArrays
+            String nodeName,
+            Version version,
+            String[] features,
+            StatsTracker statsTracker,
+            ThreadPool threadPool,
+            BigArrays bigArrays
     ) {
         this.nodeName = nodeName;
         this.version = version;
@@ -84,26 +99,26 @@ public final class OutboundHandler {
      * objects back to the caller.
      */
     public void sendRequest(
-        final DiscoveryNode node,
-        final TcpChannel channel,
-        final long requestId,
-        final String action,
-        final TransportRequest request,
-        final TransportRequestOptions options,
-        final Version channelVersion,
-        final boolean compressRequest,
-        final boolean isHandshake
+            final DiscoveryNode node,
+            final TcpChannel channel,
+            final long requestId,
+            final String action,
+            final TransportRequest request,
+            final TransportRequestOptions options,
+            final Version channelVersion,
+            final boolean compressRequest,
+            final boolean isHandshake
     ) throws IOException, TransportException {
         Version version = Version.min(this.version, channelVersion);
-        OutboundMessage.Request message = new OutboundMessage.Request(
-            threadPool.getThreadContext(),
-            features,
-            request,
-            version,
-            action,
-            requestId,
-            isHandshake,
-            compressRequest
+        OutboundMessage.Request message = new org.opensearch.latencytester.transportservice.transport.OutboundMessage.Request(
+                threadPool.getThreadContext(),
+                features,
+                request,
+                version,
+                action,
+                requestId,
+                isHandshake,
+                compressRequest
         );
         ActionListener<Void> listener = ActionListener.wrap(() -> messageListener.onRequestSent(node, requestId, action, request, options));
         sendMessage(channel, message, listener);
@@ -116,24 +131,24 @@ public final class OutboundHandler {
      * @see #sendErrorResponse(Version, Set, TcpChannel, long, String, Exception) for sending error responses
      */
     void sendResponse(
-        final Version nodeVersion,
-        final Set<String> features,
-        final TcpChannel channel,
-        final long requestId,
-        final String action,
-        final TransportResponse response,
-        final boolean compress,
-        final boolean isHandshake
+            final Version nodeVersion,
+            final Set<String> features,
+            final TcpChannel channel,
+            final long requestId,
+            final String action,
+            final TransportResponse response,
+            final boolean compress,
+            final boolean isHandshake
     ) throws IOException {
         Version version = Version.min(this.version, nodeVersion);
         OutboundMessage.Response message = new OutboundMessage.Response(
-            threadPool.getThreadContext(),
-            features,
-            response,
-            version,
-            requestId,
-            isHandshake,
-            compress
+                threadPool.getThreadContext(),
+                features,
+                response,
+                version,
+                requestId,
+                isHandshake,
+                compress
         );
         ActionListener<Void> listener = ActionListener.wrap(() -> messageListener.onResponseSent(requestId, action, response));
         sendMessage(channel, message, listener);
@@ -143,24 +158,24 @@ public final class OutboundHandler {
      * Sends back an error response to the caller via the given channel
      */
     void sendErrorResponse(
-        final Version nodeVersion,
-        final Set<String> features,
-        final TcpChannel channel,
-        final long requestId,
-        final String action,
-        final Exception error
+            final Version nodeVersion,
+            final Set<String> features,
+            final TcpChannel channel,
+            final long requestId,
+            final String action,
+            final Exception error
     ) throws IOException {
         Version version = Version.min(this.version, nodeVersion);
         TransportAddress address = new TransportAddress(channel.getLocalAddress());
         RemoteTransportException tx = new RemoteTransportException(nodeName, address, action, error);
         OutboundMessage.Response message = new OutboundMessage.Response(
-            threadPool.getThreadContext(),
-            features,
-            tx,
-            version,
-            requestId,
-            false,
-            false
+                threadPool.getThreadContext(),
+                features,
+                tx,
+                version,
+                requestId,
+                false,
+                false
         );
         ActionListener<Void> listener = ActionListener.wrap(() -> messageListener.onResponseSent(requestId, action, error));
         sendMessage(channel, message, listener);
@@ -225,18 +240,18 @@ public final class OutboundHandler {
         private long messageSize = -1;
 
         private SendContext(
-            TcpChannel channel,
-            CheckedSupplier<BytesReference, IOException> messageSupplier,
-            ActionListener<Void> listener
+                TcpChannel channel,
+                CheckedSupplier<BytesReference, IOException> messageSupplier,
+                ActionListener<Void> listener
         ) {
             this(channel, messageSupplier, listener, null);
         }
 
         private SendContext(
-            TcpChannel channel,
-            CheckedSupplier<BytesReference, IOException> messageSupplier,
-            ActionListener<Void> listener,
-            Releasable optionalReleasable
+                TcpChannel channel,
+                CheckedSupplier<BytesReference, IOException> messageSupplier,
+                ActionListener<Void> listener,
+                Releasable optionalReleasable
         ) {
             this.channel = channel;
             this.messageSupplier = messageSupplier;

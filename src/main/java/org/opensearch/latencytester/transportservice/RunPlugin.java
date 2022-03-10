@@ -1,8 +1,4 @@
-/*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- */
-package org.opensearch.latencytester.plugin;
+package org.opensearch.latencytester.transportservice;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,11 +18,9 @@ import org.opensearch.indices.breaker.NoneCircuitBreakerService;
 import org.opensearch.search.SearchModule;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.*;
-import org.opensearch.latencytester.transportservice.transport.ClusterConnectionManager;
 import org.opensearch.latencytester.transportservice.netty4.Netty;
-import org.opensearch.latencytester.transportservice.TestThreadPool;
-import org.opensearch.latencytester.transportservice.SharedGroupFactory;
-import org.opensearch.latencytester.transportservice.TransportService;
+import org.opensearch.latencytester.transportservice.transport.ClusterConnectionManager;
+import org.opensearch.latencytester.transportservice.transport.ConnectionManager;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -40,10 +34,10 @@ import static java.util.Collections.emptySet;
 public class RunPlugin {
 
     private static final Settings settings = Settings.builder()
-        .put("node.name", "NettySizeHeaderFrameDecoderTests")
-        .put(TransportSettings.BIND_HOST.getKey(), "127.0.0.1")
-        .put(TransportSettings.PORT.getKey(), "0")
-        .build();
+            .put("node.name", "NettySizeHeaderFrameDecoderTests")
+            .put(TransportSettings.BIND_HOST.getKey(), "127.0.0.1")
+            .put(TransportSettings.PORT.getKey(), "0")
+            .build();
     private static final Logger logger = LogManager.getLogger(RunPlugin.class);
     private static LocalNodeFactory localNodeFactory = null;
     public static final TransportInterceptor NOOP_TRANSPORT_INTERCEPTOR = new TransportInterceptor() {
@@ -53,7 +47,7 @@ public class RunPlugin {
 
     public RunPlugin(LocalNodeFactory localNodeFactory) {
         // DUMMY VALUE
-        this.localNodeFactory = new LocalNodeFactory(settings, "5");
+        this.localNodeFactory =  new LocalNodeFactory(settings, "5");
     }
 
     @SuppressForbidden(reason = "need local ephemeral port")
@@ -61,60 +55,56 @@ public class RunPlugin {
         return new InetSocketAddress(InetAddress.getLocalHost(), 0);
     }
 
-    // main
     public static void main(String[] args) {
 
         ThreadPool threadPool = new TestThreadPool("test");
         NetworkService networkService = new NetworkService(Collections.emptyList());
         PageCacheRecycler pageCacheRecycler = new PageCacheRecycler(settings);
-        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(
-            new SearchModule(Settings.EMPTY, Collections.emptyList()).getNamedWriteables()
-        );
-        
+        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(new SearchModule(Settings.EMPTY, Collections.emptyList()).getNamedWriteables());
         final CircuitBreakerService circuitBreakerService = new NoneCircuitBreakerService();
 
+
         Netty transport = new Netty(
-            settings,
-            Version.CURRENT,
-            threadPool,
-            networkService,
-            pageCacheRecycler,
-            namedWriteableRegistry,
-            circuitBreakerService,
-            new SharedGroupFactory(settings)
+                settings,
+                Version.CURRENT,
+                threadPool,
+                networkService,
+                pageCacheRecycler,
+                namedWriteableRegistry,
+                circuitBreakerService,
+                new SharedGroupFactory(settings)
         );
 
-        // initialize connection manager
         final ConnectionManager connectionManager = new ClusterConnectionManager(settings, transport);
 
-        // create transport service
+
+
         final TransportService transportService = new TransportService(
-            transport,
-            connectionManager,
-            transport.getResponseHandlers(),
-            threadPool,
-            localNodeFactory,
-            NOOP_TRANSPORT_INTERCEPTOR
+                transport,
+                connectionManager,
+                transport.getResponseHandlers(),
+                threadPool,
+                localNodeFactory,
+                NOOP_TRANSPORT_INTERCEPTOR
         );
 
-        
+//        connectionManager.addListener(transportService);
+
         transportService.start();
-
         transportService.acceptIncomingRequests();
-        LatencyTesterPlugin latencyTesterPlugin = new LatencyTesterPlugin();
 
-        // Test Test Test
+        // Action Listener
 
         boolean flag = true;
         try (ServerSocket socket = new ServerSocket()) {
             socket.bind(getLocalEphemeral(), 1);
             socket.setReuseAddress(true);
             DiscoveryNode dummy = new DiscoveryNode(
-                "TEST",
-                new TransportAddress(socket.getInetAddress(), socket.getLocalPort()),
-                emptyMap(),
-                emptySet(),
-                version0
+                    "TEST",
+                    new TransportAddress(socket.getInetAddress(), socket.getLocalPort()),
+                    emptyMap(),
+                    emptySet(),
+                    version0
             );
             Thread t = new Thread() {
                 @Override
@@ -131,15 +121,15 @@ public class RunPlugin {
             t.start();
             ConnectionProfile.Builder builder = new ConnectionProfile.Builder();
             builder.addConnections(
-                1,
-                TransportRequestOptions.Type.BULK,
-                TransportRequestOptions.Type.PING,
-                TransportRequestOptions.Type.RECOVERY,
-                TransportRequestOptions.Type.REG,
-                TransportRequestOptions.Type.STATE
+                    1,
+                    TransportRequestOptions.Type.BULK,
+                    TransportRequestOptions.Type.PING,
+                    TransportRequestOptions.Type.RECOVERY,
+                    TransportRequestOptions.Type.REG,
+                    TransportRequestOptions.Type.STATE
             );
             builder.setHandshakeTimeout(TimeValue.timeValueHours(1));
-            transportService.connectToNode(dummy, builder.build());
+            //transportService.connectToNode(dummy, builder.build());
             t.join();
 
         } catch (IOException e) {
@@ -148,7 +138,6 @@ public class RunPlugin {
             e.printStackTrace();
         }
     }
-
 
     private static class LocalNodeFactory implements Function<BoundTransportAddress, DiscoveryNode> {
         private final SetOnce<DiscoveryNode> localNode = new SetOnce<>();
@@ -171,13 +160,5 @@ public class RunPlugin {
             return localNode.get();
         }
     }
+
 }
-
-
-//public class RunPlugin {
-//    
-//    public static void main(String[] args) {
-//        System.out.println("TESTTTTTTTTTTTTTTTTTTT");
-//        LatencyTesterPlugin latencyPlugin = new LatencyTesterPlugin();
-//    }
-//}

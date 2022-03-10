@@ -4,23 +4,38 @@
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
- * SPDX-License-Identifier: Apache-2.0
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
  */
 
 package org.opensearch.latencytester.transportservice.transport;
 
 import org.opensearch.Version;
 import org.opensearch.common.lease.Releasable;
+import org.opensearch.search.query.QuerySearchResult;
+import org.opensearch.transport.TcpChannel;
 import org.opensearch.transport.TransportChannel;
 import org.opensearch.transport.TransportResponse;
 
@@ -71,7 +86,11 @@ public final class TcpTransportChannel implements TransportChannel {
     @Override
     public void sendResponse(TransportResponse response) throws IOException {
         try {
-            outboundHandler.sendResponse(version, features, channel, requestId, action, response, compressResponse, isHandshake);
+            if (response instanceof QuerySearchResult && ((QuerySearchResult) response).getShardSearchRequest() != null) {
+                // update outbound network time with current time before sending response over network
+                ((QuerySearchResult) response).getShardSearchRequest().setOutboundNetworkTime(System.currentTimeMillis());
+            }
+            outboundHandler.sendResponse(version, features, null, requestId, action, response, compressResponse, isHandshake);
         } finally {
             release(false);
         }

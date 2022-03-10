@@ -1,21 +1,48 @@
-/*
+package org.opensearch.latencytester.transportservice;/*
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
+ */
+
+/*
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/*
+ * Copyright 2012 The transportservice.netty4.Netty Project
+ *
+ * The transportservice.Netty Project licenses this file to you under the Apache License,
+ * version 2.0 (the "License"); you may not use this file except in compliance
+ * with the License. You may obtain a copy of the License at:
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+/*
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
-
-package org.opensearch.latencytester.transportservice;/*
-                                            * SPDX-License-Identifier: Apache-2.0
-                                            *
-                                            * The OpenSearch Contributors require contributions made to
-                                            * this file be licensed under the Apache-2.0 license or a
-                                            * compatible open source license.
-                                            */
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
@@ -45,10 +72,8 @@ import static io.netty.channel.internal.ChannelUtils.MAX_BYTES_PER_GATHERING_WRI
 public class CopyBytesSocketChannel extends Netty4NioSocketChannel {
 
     private static final int MAX_BYTES_PER_WRITE = StrictMath.toIntExact(
-        ByteSizeValue.parseBytesSizeValue(
-            System.getProperty("opensearch.transportservice.transport.buffer.size", "1m"),
-            "opensearch.transportservice.transport.buffer.size"
-        ).getBytes()
+        ByteSizeValue.parseBytesSizeValue(System.getProperty("opensearch.transportservice.transport.buffer.size", "1m"), "opensearch.transportservice.transport.buffer.size")
+            .getBytes()
     );
 
     private static final ThreadLocal<ByteBuffer> ioBuffer = ThreadLocal.withInitial(() -> ByteBuffer.allocateDirect(MAX_BYTES_PER_WRITE));

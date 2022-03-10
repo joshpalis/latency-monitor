@@ -4,17 +4,30 @@
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
- * SPDX-License-Identifier: Apache-2.0
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
  */
 
 package org.opensearch.latencytester.transportservice.netty4;
@@ -24,10 +37,12 @@ import io.netty.channel.*;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.OpenSearchException;
 import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.common.bytes.ReleasableBytesReference;
 import org.opensearch.common.util.PageCacheRecycler;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.Transport;
 import org.opensearch.transport.Transports;
+import org.opensearch.latencytester.transportservice.transport.InboundPipeline;
+import org.opensearch.latencytester.transportservice.transport.Transport;
 
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayDeque;
@@ -44,11 +59,22 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
     private final Queue<WriteOperation> queuedWrites = new ArrayDeque<>();
 
     private WriteOperation currentWrite;
+    private final InboundPipeline pipeline;
+
 
     Netty4MessageChannelHandler(PageCacheRecycler recycler, Netty transport) {
         this.transport = transport;
         final ThreadPool threadPool = transport.getThreadPool();
         final Transport.RequestHandlers requestHandlers = transport.getRequestHandlers();
+        this.pipeline = new InboundPipeline(
+                transport.getVersion(),
+                transport.getStatsTracker(),
+                recycler,
+                threadPool::relativeTimeInMillis,
+                transport.getInflightBreaker(),
+                requestHandlers::getHandler,
+                transport::inboundMessage
+        );
     }
 
     @Override
@@ -60,13 +86,10 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
         final ByteBuf buffer = (ByteBuf) msg;
         Netty4TcpChannel channel = ctx.channel().attr(Netty.CHANNEL_KEY).get();
         final BytesReference wrapped = Netty4Utils.toBytesReference(buffer);
-
-        // print telnet message
-         System.out.println("MESSAGE RECEIVED:" + wrapped.utf8ToString());
-
-        // try (ReleasableBytesReference reference = new ReleasableBytesReference(wrapped, buffer::release)) {
-        // pipeline.handleBytes(channel, reference);
-        // }
+        System.out.println("MESSAGE RECEIVED:" + wrapped.utf8ToString());
+        try (ReleasableBytesReference reference = new ReleasableBytesReference(wrapped, buffer::release)) {
+            pipeline.handleBytes(channel, reference);
+        }
     }
 
     @Override
@@ -114,7 +137,7 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         assert Transports.assertDefaultThreadContext(transport.getThreadPool().getThreadContext());
         doFlush(ctx);
-        // Releasables.closeWhileHandlingException(pipeline);
+//        Releasables.closeWhileHandlingException(pipeline);
         super.channelInactive(ctx);
     }
 

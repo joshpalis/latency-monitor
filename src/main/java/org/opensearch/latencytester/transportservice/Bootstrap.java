@@ -1,19 +1,9 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
-
 package org.opensearch.latencytester.transportservice;
 
 import org.opensearch.Version;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
+import org.opensearch.node.NodeValidationException;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,20 +13,21 @@ import java.util.concurrent.CountDownLatch;
 
 public class Bootstrap {
 
+
     private final Thread keepAliveThread;
     private final CountDownLatch keepAliveLatch = new CountDownLatch(1);
 
     public static Environment newEnvironment(Settings settings) {
-        return new Environment(settings, (Path) null);
+        return new Environment(settings, (Path)null);
     }
 
     private Environment createEnvironment() throws IOException {
         Path home = Files.createTempDirectory(String.valueOf(Paths.get("test")));
         return newEnvironment(
-            Settings.builder()
-                .put(Environment.PATH_HOME_SETTING.getKey(), home.toAbsolutePath())
-                .put(Environment.PATH_REPO_SETTING.getKey(), home.resolve("repo").toAbsolutePath())
-                .build()
+                Settings.builder()
+                        .put(Environment.PATH_HOME_SETTING.getKey(), home.toAbsolutePath())
+                        .put(Environment.PATH_REPO_SETTING.getKey(), home.resolve("repo").toAbsolutePath())
+                        .build()
         );
     }
 
@@ -62,16 +53,19 @@ public class Bootstrap {
             }
         });
 
-        // node = new IndependentPlugin(environment) {
-        // @Override
-        // protected void validateNodeBeforeAcceptingRequests(
-        // final BootstrapContext context,
-        // final BoundTransportAddress boundTransportAddress,
-        // List<BootstrapCheck> checks
-        // ) throws NodeValidationException {
-        //
-        // }
-        // };
+
+//        node = new IndependentPlugin(environment) {
+//            @Override
+//            protected void validateNodeBeforeAcceptingRequests(
+//                    final BootstrapContext context,
+//                    final BoundTransportAddress boundTransportAddress,
+//                    List<BootstrapCheck> checks
+//            ) throws NodeValidationException {
+//
+//            }
+//        };
     }
+
+
 
 }

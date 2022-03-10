@@ -1,14 +1,3 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
-
 package org.opensearch.latencytester.transportservice;
 
 import com.carrotsearch.hppc.IntHashSet;
@@ -16,6 +5,7 @@ import com.carrotsearch.hppc.IntSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.opensearch.OpenSearchException;
 import org.opensearch.Version;
 import org.opensearch.action.ActionListener;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -23,8 +13,11 @@ import org.opensearch.common.Booleans;
 import org.opensearch.common.Strings;
 import org.opensearch.common.breaker.CircuitBreaker;
 import org.opensearch.common.bytes.BytesArray;
+import org.opensearch.common.bytes.BytesReference;
 import org.opensearch.common.component.Lifecycle;
 import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.common.io.stream.StreamInput;
+import org.opensearch.common.metrics.MeanMetric;
 import org.opensearch.common.network.CloseableChannel;
 import org.opensearch.common.network.NetworkAddress;
 import org.opensearch.common.network.NetworkService;
@@ -38,12 +31,16 @@ import org.opensearch.common.util.BigArrays;
 import org.opensearch.common.util.PageCacheRecycler;
 import org.opensearch.common.util.concurrent.ConcurrentCollections;
 import org.opensearch.indices.breaker.CircuitBreakerService;
+import org.opensearch.monitor.jvm.JvmInfo;
 import org.opensearch.node.Node;
+import org.opensearch.rest.RestStatus;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.*;
 import org.opensearch.latencytester.transportservice.component.AbstractLifecycleComponent;
+import org.opensearch.latencytester.transportservice.transport.ConnectionProfile;
 import org.opensearch.latencytester.transportservice.transport.InboundHandler;
 import org.opensearch.latencytester.transportservice.transport.OutboundHandler;
+import org.opensearch.latencytester.transportservice.transport.Transport;
 import org.opensearch.latencytester.transportservice.transport.TransportHandshaker;
 import org.opensearch.latencytester.transportservice.transport.TransportKeepAlive;
 
@@ -59,9 +56,15 @@ import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
+import org.opensearch.latencytester.transportservice.transport.TcpChannel;
+import org.opensearch.latencytester.transportservice.transport.InboundMessage;
+import org.opensearch.latencytester.transportservice.transport.Transport.ResponseHandlers;
+
 
 import static java.util.Collections.unmodifiableMap;
 import static org.opensearch.common.transport.NetworkExceptionHelper.isCloseConnectionException;
@@ -71,6 +74,9 @@ import static org.opensearch.common.util.concurrent.ConcurrentCollections.newCon
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
 
     private static final Logger logger = LogManager.getLogger(TcpTransport.class);
+    // This is the number of bytes necessary to read the message size
+    private static final int BYTES_NEEDED_FOR_MESSAGE_SIZE = TcpHeader.MARKER_BYTES_SIZE + TcpHeader.MESSAGE_LENGTH_SIZE;
+    private static final long THIRTY_PER_HEAP_SIZE = (long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.3);
     protected final Settings settings;
     private final Version version;
     protected final ThreadPool threadPool;
@@ -84,28 +90,29 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private final Map<String, List<TcpServerChannel>> serverChannels = newConcurrentMap();
     private final Set<TcpChannel> acceptedChannels = ConcurrentCollections.newConcurrentSet();
     private final OutboundHandler outboundHandler;
-    private final org.opensearch.latencytester.transportservice.transport.InboundHandler inboundHandler;
+    private final InboundHandler inboundHandler;
     private final TransportKeepAlive keepAlive;
     private final TransportHandshaker handshaker;
-    private final ResponseHandlers responseHandlers = new ResponseHandlers();
-    private final RequestHandlers requestHandlers = new RequestHandlers();
+    private final org.opensearch.latencytester.transportservice.transport.Transport.ResponseHandlers responseHandlers = new org.opensearch.latencytester.transportservice.transport.Transport.ResponseHandlers();
+    private final org.opensearch.latencytester.transportservice.transport.Transport.RequestHandlers requestHandlers = new org.opensearch.latencytester.transportservice.transport.Transport.RequestHandlers();
+
 
     private final ReadWriteLock closeLock = new ReentrantReadWriteLock();
     final StatsTracker statsTracker = new StatsTracker();
+    private final AtomicLong outboundConnectionCount = new AtomicLong(); // also used as a correlation ID for open/close logs
+
 
     public TcpTransport(
-        Settings settings,
-        Version version,
-        ThreadPool threadPool,
-        PageCacheRecycler pageCacheRecycler,
-        CircuitBreakerService circuitBreakerService,
-        NamedWriteableRegistry namedWriteableRegistry,
-        NetworkService networkService
+            Settings settings,
+            Version version,
+            ThreadPool threadPool,
+            PageCacheRecycler pageCacheRecycler,
+            CircuitBreakerService circuitBreakerService,
+            NamedWriteableRegistry namedWriteableRegistry,
+            NetworkService networkService
     ) {
         this.settings = settings;
-        this.profileSettings = getProfileSettings(
-            Settings.builder().put("transport.profiles.test.port", "5555").put("transport.profiles.default.port", "3333").build()
-        );
+        this.profileSettings = getProfileSettings(Settings.builder().put("transport.profiles.test.port", "5555").put("transport.profiles.default.port", "3333").build());
         this.version = version;
         this.threadPool = threadPool;
         this.pageCacheRecycler = pageCacheRecycler;
@@ -129,30 +136,42 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         BigArrays bigArrays = new BigArrays(pageCacheRecycler, circuitBreakerService, CircuitBreaker.IN_FLIGHT_REQUESTS);
         this.outboundHandler = new OutboundHandler(nodeName, version, features, statsTracker, threadPool, bigArrays);
         this.handshaker = new TransportHandshaker(
-            version,
-            threadPool,
-            (node, channel, requestId, v) -> outboundHandler.sendRequest(
-                node,
-                channel,
-                requestId,
-                TransportHandshaker.HANDSHAKE_ACTION_NAME,
-                new TransportHandshaker.HandshakeRequest(version),
-                TransportRequestOptions.EMPTY,
-                v,
-                false,
-                true
-            )
+                version,
+                threadPool,
+                (node, channel, requestId, v) -> outboundHandler.sendRequest(
+                        node,
+                        channel,
+                        requestId,
+                        TransportHandshaker.HANDSHAKE_ACTION_NAME,
+                        new TransportHandshaker.HandshakeRequest(version),
+                        TransportRequestOptions.EMPTY,
+                        v,
+                        false,
+                        true
+                )
         );
         this.keepAlive = new TransportKeepAlive(threadPool, this.outboundHandler::sendBytes);
         this.inboundHandler = new InboundHandler(
-            threadPool,
-            outboundHandler,
-            namedWriteableRegistry,
-            handshaker,
-            keepAlive,
-            requestHandlers,
-            responseHandlers
+                threadPool,
+                outboundHandler,
+                namedWriteableRegistry,
+                handshaker,
+                keepAlive,
+                requestHandlers,
+                responseHandlers
         );
+    }
+
+    public final int getNumPendingHandshakes() {
+        return this.handshaker.getNumPendingHandshakes();
+    }
+
+    public StatsTracker getStatsTracker() {
+        return statsTracker;
+    }
+
+    public Supplier<CircuitBreaker> getInflightBreaker() {
+        return () -> circuitBreakerService.getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
     }
 
     @Override
@@ -161,6 +180,147 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     protected abstract void stopInternal();
+
+    public void inboundMessage(TcpChannel channel, InboundMessage message) {
+        try {
+            inboundHandler.inboundMessage(channel, message);
+        } catch (Exception e) {
+            onException(channel, e);
+        }
+    }
+
+    public final long getNumHandshakes() {
+        return handshaker.getNumHandshakes();
+    }
+    public final TransportKeepAlive getKeepAlive() {
+        return keepAlive;
+    }
+
+
+    /**
+     * Validates the first 6 bytes of the message header and returns the length of the message. If 6 bytes
+     * are not available, it returns -1.
+     *
+     * @param networkBytes the will be read
+     * @return the length of the message
+     * @throws StreamCorruptedException              if the message header format is not recognized
+     * @throws org.opensearch.transport.TcpTransport.HttpRequestOnTransportException       if the message header appears to be an HTTP message
+     * @throws IllegalArgumentException              if the message length is greater that the maximum allowed frame size.
+     *                                               This is dependent on the available memory.
+     */
+
+    public static int readMessageLength(BytesReference networkBytes) throws IOException {
+        if (networkBytes.length() < BYTES_NEEDED_FOR_MESSAGE_SIZE) {
+            return -1;
+        } else {
+            return readHeaderBuffer(networkBytes);
+        }
+    }
+
+    private static int readHeaderBuffer(BytesReference headerBuffer) throws IOException {
+        if (headerBuffer.get(0) != 'E' || headerBuffer.get(1) != 'S') {
+            if (appearsToBeHTTPRequest(headerBuffer)) {
+                throw new TcpTransport.HttpRequestOnTransportException("This is not an HTTP port");
+            }
+
+            if (appearsToBeHTTPResponse(headerBuffer)) {
+                throw new StreamCorruptedException(
+                        "received HTTP response on transport port, ensure that transport port (not "
+                                + "HTTP port) of a remote node is specified in the configuration"
+                );
+            }
+
+            String firstBytes = "("
+                    + Integer.toHexString(headerBuffer.get(0) & 0xFF)
+                    + ","
+                    + Integer.toHexString(headerBuffer.get(1) & 0xFF)
+                    + ","
+                    + Integer.toHexString(headerBuffer.get(2) & 0xFF)
+                    + ","
+                    + Integer.toHexString(headerBuffer.get(3) & 0xFF)
+                    + ")";
+
+            if (appearsToBeTLS(headerBuffer)) {
+                throw new StreamCorruptedException("SSL/TLS request received but SSL/TLS is not enabled on this node, got " + firstBytes);
+            }
+
+            throw new StreamCorruptedException("invalid internal transport message format, got " + firstBytes);
+        }
+        final int messageLength = headerBuffer.getInt(TcpHeader.MARKER_BYTES_SIZE);
+
+        if (messageLength == TransportKeepAlive.PING_DATA_SIZE) {
+            // This is a ping
+            return 0;
+        }
+
+        if (messageLength <= 0) {
+            throw new StreamCorruptedException("invalid data length: " + messageLength);
+        }
+
+        if (messageLength > THIRTY_PER_HEAP_SIZE) {
+            throw new IllegalArgumentException(
+                    "transport content length received ["
+                            + new ByteSizeValue(messageLength)
+                            + "] exceeded ["
+                            + new ByteSizeValue(THIRTY_PER_HEAP_SIZE)
+                            + "]"
+            );
+        }
+
+        return messageLength;
+    }
+
+    private static boolean appearsToBeHTTPRequest(BytesReference headerBuffer) {
+        return bufferStartsWith(headerBuffer, "GET")
+                || bufferStartsWith(headerBuffer, "POST")
+                || bufferStartsWith(headerBuffer, "PUT")
+                || bufferStartsWith(headerBuffer, "HEAD")
+                || bufferStartsWith(headerBuffer, "DELETE")
+                // Actually 'OPTIONS'. But we are only guaranteed to have read six bytes at this point.
+                || bufferStartsWith(headerBuffer, "OPTION")
+                || bufferStartsWith(headerBuffer, "PATCH")
+                || bufferStartsWith(headerBuffer, "TRACE");
+    }
+
+    private static boolean appearsToBeHTTPResponse(BytesReference headerBuffer) {
+        return bufferStartsWith(headerBuffer, "HTTP");
+    }
+
+    private static boolean appearsToBeTLS(BytesReference headerBuffer) {
+        return headerBuffer.get(0) == 0x16 && headerBuffer.get(1) == 0x03;
+    }
+
+    private static boolean bufferStartsWith(BytesReference buffer, String method) {
+        char[] chars = method.toCharArray();
+        for (int i = 0; i < chars.length; i++) {
+            if (buffer.get(i) != chars[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * A helper exception to mark an incoming connection as potentially being HTTP
+     * so an appropriate error code can be returned
+     */
+    public static class HttpRequestOnTransportException extends OpenSearchException {
+
+        HttpRequestOnTransportException(String msg) {
+            super(msg);
+        }
+
+        @Override
+        public RestStatus status() {
+            return RestStatus.BAD_REQUEST;
+        }
+
+        public HttpRequestOnTransportException(StreamInput in) throws IOException {
+            super(in);
+        }
+    }
+
+
 
     @Override
     protected void doStop() {
@@ -177,8 +337,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                     String profile = entry.getKey();
                     List<TcpServerChannel> channels = entry.getValue();
                     ActionListener<Void> closeFailLogger = ActionListener.wrap(
-                        c -> {},
-                        e -> logger.warn(() -> new ParameterizedMessage("Error closing serverChannel for profile [{}]", profile), e)
+                            c -> {},
+                            e -> logger.warn(() -> new ParameterizedMessage("Error closing serverChannel for profile [{}]", profile), e)
                     );
                     channels.forEach(c -> c.addCloseListener(closeFailLogger));
                     CloseableChannel.closeChannels(channels, true);
@@ -210,7 +370,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     @Override
-    public void setMessageListener(TransportMessageListener transportMessageListener) {
+    public void setMessageListener(org.opensearch.latencytester.transportservice.transport.TransportMessageListener transportMessageListener) {
         outboundHandler.setMessageListener(transportMessageListener);
         inboundHandler.setMessageListener(transportMessageListener);
     }
@@ -236,27 +396,35 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     @Override
-    public void openConnection(
-        DiscoveryNode discoveryNode,
-        ConnectionProfile connectionProfile,
-        ActionListener<Connection> actionListener
-    ) {
+    public void openConnection(DiscoveryNode discoveryNode, ConnectionProfile connectionProfile, org.opensearch.latencytester.transportservice.action.ActionListener<Connection> actionListener) {
 
     }
 
     @Override
     public TransportStats getStats() {
-        return null;
+        final MeanMetric writeBytesMetric = statsTracker.getWriteBytes();
+        final long bytesWritten = statsTracker.getBytesWritten();
+        final long messagesSent = statsTracker.getMessagesSent();
+        final long messagesReceived = statsTracker.getMessagesReceived();
+        final long bytesRead = statsTracker.getBytesRead();
+        return new TransportStats(
+                acceptedChannels.size(),
+                outboundConnectionCount.get(),
+                messagesReceived,
+                bytesRead,
+                messagesSent,
+                bytesWritten
+        );
     }
 
     @Override
     public ResponseHandlers getResponseHandlers() {
-        return null;
+        return responseHandlers;
     }
 
     @Override
     public RequestHandlers getRequestHandlers() {
-        return null;
+        return requestHandlers;
     }
 
     private InetSocketAddress bindToPort(final String name, final InetAddress hostAddress, String port) {
@@ -282,8 +450,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             });
             if (!success) {
                 throw new BindTransportException(
-                    "Failed to bind to " + NetworkAddress.format(hostAddress, portsRange),
-                    lastException.get()
+                        "Failed to bind to " + NetworkAddress.format(hostAddress, portsRange),
+                        lastException.get()
                 );
             }
         } finally {
@@ -342,7 +510,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         boolean addedOnThisCall = acceptedChannels.add(channel);
         assert addedOnThisCall : "Channel should only be added to accepted channel set once";
         // Mark the channel init time
-        // channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
+//        channel.getChannelStats().markAccessed(threadPool.relativeTimeInMillis());
         channel.addCloseListener(ActionListener.wrap(() -> acceptedChannels.remove(channel)));
         logger.trace(() -> new ParameterizedMessage("Tcp transport channel accepted: {}", channel));
     }
@@ -354,6 +522,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
      * @param address the address to bind to
      */
     protected abstract TcpServerChannel bind(String name, InetSocketAddress address) throws IOException;
+
 
     private BoundTransportAddress createBoundTransportAddress(ProfileSettings profileSettings, List<InetSocketAddress> boundAddresses) {
         String[] boundAddressesHostStrings = new String[boundAddresses.size()];
@@ -413,17 +582,17 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         if (publishPort < 0) {
             String profileExplanation = profileSettings.isDefaultProfile ? "" : " for profile " + profileSettings.profileName;
             throw new BindTransportException(
-                "Failed to auto-resolve publish port"
-                    + profileExplanation
-                    + ", multiple bound addresses "
-                    + boundAddresses
-                    + " with distinct ports and none of them matched the publish address ("
-                    + publishInetAddress
-                    + "). "
-                    + "Please specify a unique port by setting "
-                    + TransportSettings.PORT.getKey()
-                    + " or "
-                    + TransportSettings.PUBLISH_PORT.getKey()
+                    "Failed to auto-resolve publish port"
+                            + profileExplanation
+                            + ", multiple bound addresses "
+                            + boundAddresses
+                            + " with distinct ports and none of them matched the publish address ("
+                            + publishInetAddress
+                            + "). "
+                            + "Please specify a unique port by setting "
+                            + TransportSettings.PORT.getKey()
+                            + " or "
+                            + TransportSettings.PUBLISH_PORT.getKey()
             );
         }
         return publishPort;
@@ -469,11 +638,11 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
         if (isCloseConnectionException(e)) {
             logger.debug(
-                () -> new ParameterizedMessage(
-                    "close connection exception caught on transport layer [{}], disconnecting from relevant node",
-                    channel
-                ),
-                e
+                    () -> new ParameterizedMessage(
+                            "close connection exception caught on transport layer [{}], disconnecting from relevant node",
+                            channel
+                    ),
+                    e
             );
             // close the channel, which will cause a node to be disconnected if relevant
             CloseableChannel.closeChannel(channel);
@@ -487,11 +656,11 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             CloseableChannel.closeChannel(channel);
         } else if (e instanceof CancelledKeyException) {
             logger.debug(
-                () -> new ParameterizedMessage(
-                    "cancelled key exception caught on transport layer [{}], disconnecting from relevant node",
-                    channel
-                ),
-                e
+                    () -> new ParameterizedMessage(
+                            "cancelled key exception caught on transport layer [{}], disconnecting from relevant node",
+                            channel
+                    ),
+                    e
             );
             // close the channel as safe measure, which will cause a node to be disconnected if relevant
             CloseableChannel.closeChannel(channel);
@@ -510,6 +679,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             CloseableChannel.closeChannel(channel);
         }
     }
+
 
     /**
      * Representation of a transport profile settings for a {@code transport.profiles.$profilename.*}
@@ -550,9 +720,11 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             }
             portOrRange = TransportSettings.PORT_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
             publishPort = isDefaultProfile
-                ? TransportSettings.PUBLISH_PORT.get(settings)
-                : TransportSettings.PUBLISH_PORT_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
+                    ? TransportSettings.PUBLISH_PORT.get(settings)
+                    : TransportSettings.PUBLISH_PORT_PROFILE.getConcreteSettingForNamespace(profileName).get(settings);
         }
     }
+
+
 
 }

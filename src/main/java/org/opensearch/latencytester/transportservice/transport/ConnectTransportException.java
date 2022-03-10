@@ -32,54 +32,46 @@
 
 package org.opensearch.latencytester.transportservice.transport;
 
-import org.opensearch.Version;
-import org.opensearch.common.bytes.BytesReference;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.StreamOutput;
-import org.opensearch.transport.TransportRequest;
+import org.opensearch.transport.ActionTransportException;
 
 import java.io.IOException;
 
-/**
- * A specialized, bytes only request, that can potentially be optimized on the network
- * layer, specifically for the same large buffer send to several nodes.
- */
-public class BytesTransportRequest extends TransportRequest {
+public class ConnectTransportException extends ActionTransportException {
 
-    BytesReference bytes;
-    Version version;
+    private final DiscoveryNode node;
 
-    public BytesTransportRequest(StreamInput in) throws IOException {
+    public ConnectTransportException(DiscoveryNode node, String msg) {
+        this(node, msg, null, null);
+    }
+
+    public ConnectTransportException(DiscoveryNode node, String msg, String action) {
+        this(node, msg, action, null);
+    }
+
+    public ConnectTransportException(DiscoveryNode node, String msg, Throwable cause) {
+        this(node, msg, null, cause);
+    }
+
+    public ConnectTransportException(DiscoveryNode node, String msg, String action, Throwable cause) {
+        super(node == null ? null : node.getName(), node == null ? null : node.getAddress(), action, msg, cause);
+        this.node = node;
+    }
+
+    public ConnectTransportException(StreamInput in) throws IOException {
         super(in);
-        bytes = in.readBytesReference();
-        version = in.getVersion();
-    }
-
-    public BytesTransportRequest(BytesReference bytes, Version version) {
-        this.bytes = bytes;
-        this.version = version;
-    }
-
-    public Version version() {
-        return this.version;
-    }
-
-    public BytesReference bytes() {
-        return this.bytes;
-    }
-
-    /**
-     * Writes the data in a "thin" manner, without the actual bytes, assumes
-     * the actual bytes will be appended right after this content.
-     */
-    public void writeThin(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(bytes.length());
+        node = in.readOptionalWriteable(DiscoveryNode::new);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeBytesReference(bytes);
+        out.writeOptionalWriteable(node);
+    }
+
+    public DiscoveryNode node() {
+        return node;
     }
 }

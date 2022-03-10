@@ -1,4 +1,4 @@
-package org.opensearch.latencytester.transportservice;/*
+/*
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -15,7 +15,7 @@ package org.opensearch.latencytester.transportservice;/*
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -30,19 +30,24 @@ package org.opensearch.latencytester.transportservice;/*
  * GitHub history for details.
  */
 
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.logging.LogLevel;
-import io.netty.handler.logging.LoggingHandler;
+package org.opensearch.latencytester.transportservice.action;
 
-final class OpenSearchLoggingHandler extends LoggingHandler {
+import org.opensearch.common.CheckedConsumer;
 
-    OpenSearchLoggingHandler() {
-        super(LogLevel.TRACE);
+public class PlainActionFuture<T> extends AdapterActionFuture<T, T> {
+
+    public static <T> PlainActionFuture<T> newFuture() {
+        return new PlainActionFuture<>();
+    }
+
+    public static <T, E extends Exception> T get(CheckedConsumer<PlainActionFuture<T>, E> e) throws E {
+        PlainActionFuture<T> fut = newFuture();
+        e.accept(fut);
+        return fut.actionGet();
     }
 
     @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
-        // We do not want to log read complete events because we log inbound messages in the TcpTransport.
-        ctx.fireChannelReadComplete();
+    protected T convert(T listenerResponse) {
+        return listenerResponse;
     }
 }

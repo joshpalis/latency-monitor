@@ -4,17 +4,29 @@
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
  */
 
 /*
- * SPDX-License-Identifier: Apache-2.0
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/*
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
  */
 
 package org.opensearch.latencytester.transportservice.transport;
@@ -61,7 +73,7 @@ public final class TransportHandshaker {
         this.handshakeRequestSender = handshakeRequestSender;
     }
 
-    void sendHandshake(long requestId, DiscoveryNode node, TcpChannel channel, TimeValue timeout, ActionListener<Version> listener) {
+    public void sendHandshake(long requestId, DiscoveryNode node, org.opensearch.latencytester.transportservice.transport.TcpChannel channel, TimeValue timeout, ActionListener<Version> listener) {
         numHandshakes.inc();
         final HandshakeResponseHandler handler = new HandshakeResponseHandler(requestId, version, listener);
         pendingHandshakes.put(requestId, handler);
@@ -74,7 +86,7 @@ public final class TransportHandshaker {
             // we also have no payload on the request but the response will contain the actual version of the node we talk
             // to as the payload.
             Version minCompatVersion = version.minimumCompatibilityVersion();
-            if (version.onOrAfter(Version.V_1_0_0) && version.before(Version.V_1_3_0)) {
+            if (version.onOrAfter(Version.V_1_0_0) && version.before(Version.V_2_0_0)) {
                 // the minCompatibleVersion for OpenSearch 1.x is sent as 6.7.99 instead of 6.8.0
                 // as this helps in (indirectly) identifying the remote node version during handle HandshakeRequest itself
                 // and then send appropriate version (7.10.2/ OpenSearch 1.x version) in response.
@@ -84,7 +96,7 @@ public final class TransportHandshaker {
                 // Sending only BC version to ElasticSearch node provide easy deprecation path for this BC version logic
                 // in OpenSearch 2.0.0.
                 minCompatVersion = Version.fromId(6079999);
-            } else if (version.onOrAfter(Version.V_1_3_0)) {
+            } else if (version.onOrAfter(Version.V_2_0_0)) {
                 minCompatVersion = Version.fromId(7099999);
             }
             handshakeRequestSender.sendRequest(node, channel, requestId, minCompatVersion);
@@ -136,11 +148,11 @@ public final class TransportHandshaker {
         return pendingHandshakes.remove(requestId);
     }
 
-    int getNumPendingHandshakes() {
+    public int getNumPendingHandshakes() {
         return pendingHandshakes.size();
     }
 
-    long getNumHandshakes() {
+    public long getNumHandshakes() {
         return numHandshakes.count();
     }
 
@@ -265,6 +277,6 @@ public final class TransportHandshaker {
     @FunctionalInterface
     public interface HandshakeRequestSender {
 
-        void sendRequest(DiscoveryNode node, TcpChannel channel, long requestId, Version version) throws IOException;
+        void sendRequest(DiscoveryNode node, org.opensearch.latencytester.transportservice.transport.TcpChannel channel, long requestId, Version version) throws IOException;
     }
 }

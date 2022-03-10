@@ -1,21 +1,34 @@
-/*
+package org.opensearch.latencytester.transportservice.transport;/*
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
+ */
+
+/*
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/*
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
 
-package org.opensearch.latencytester.transportservice.transport;/*
-                                                      * SPDX-License-Identifier: Apache-2.0
-                                                      *
-                                                      * The OpenSearch Contributors require contributions made to
-                                                      * this file be licensed under the Apache-2.0 license or a
-                                                      * compatible open source license.
-                                                      */
 
 import org.opensearch.Version;
 import org.opensearch.common.bytes.BytesArray;
@@ -30,7 +43,7 @@ import org.opensearch.transport.*;
 import java.io.IOException;
 import java.util.Set;
 
-abstract class OutboundMessage extends NetworkMessage {
+abstract class OutboundMessage extends org.opensearch.latencytester.transportservice.transport.NetworkMessage {
 
     private final Writeable message;
 
@@ -53,7 +66,7 @@ abstract class OutboundMessage extends NetworkMessage {
             variableHeaderLength = Math.toIntExact(bytesStream.position() - preHeaderPosition);
         }
 
-        try (CompressibleBytesOutputStream stream = new CompressibleBytesOutputStream(bytesStream, TransportStatus.isCompress(status))) {
+        try (org.opensearch.latencytester.transportservice.transport.CompressibleBytesOutputStream stream = new org.opensearch.latencytester.transportservice.transport.CompressibleBytesOutputStream(bytesStream, org.opensearch.latencytester.transportservice.transport.TransportStatus.isCompress(status))) {
             stream.setVersion(version);
             stream.setFeatures(bytesStream.getFeatures());
 
@@ -73,10 +86,10 @@ abstract class OutboundMessage extends NetworkMessage {
         threadContext.writeTo(stream);
     }
 
-    protected BytesReference writeMessage(CompressibleBytesOutputStream stream) throws IOException {
+    protected BytesReference writeMessage(org.opensearch.latencytester.transportservice.transport.CompressibleBytesOutputStream stream) throws IOException {
         final BytesReference zeroCopyBuffer;
-        if (message instanceof BytesTransportRequest) {
-            BytesTransportRequest bRequest = (BytesTransportRequest) message;
+        if (message instanceof org.opensearch.latencytester.transportservice.transport.BytesTransportRequest) {
+            org.opensearch.latencytester.transportservice.transport.BytesTransportRequest bRequest = (org.opensearch.latencytester.transportservice.transport.BytesTransportRequest) message;
             bRequest.writeThin(stream);
             zeroCopyBuffer = bRequest.bytes;
         } else if (message instanceof RemoteTransportException) {
@@ -105,14 +118,14 @@ abstract class OutboundMessage extends NetworkMessage {
         private final String action;
 
         Request(
-            ThreadContext threadContext,
-            String[] features,
-            Writeable message,
-            Version version,
-            String action,
-            long requestId,
-            boolean isHandshake,
-            boolean compress
+                ThreadContext threadContext,
+                String[] features,
+                Writeable message,
+                Version version,
+                String action,
+                long requestId,
+                boolean isHandshake,
+                boolean compress
         ) {
             super(threadContext, version, setStatus(compress, isHandshake, message), requestId, message);
             this.features = features;
@@ -128,12 +141,12 @@ abstract class OutboundMessage extends NetworkMessage {
 
         private static byte setStatus(boolean compress, boolean isHandshake, Writeable message) {
             byte status = 0;
-            status = TransportStatus.setRequest(status);
+            status = org.opensearch.latencytester.transportservice.transport.TransportStatus.setRequest(status);
             if (compress && OutboundMessage.canCompress(message)) {
-                status = TransportStatus.setCompress(status);
+                status = org.opensearch.latencytester.transportservice.transport.TransportStatus.setCompress(status);
             }
             if (isHandshake) {
-                status = TransportStatus.setHandshake(status);
+                status = org.opensearch.latencytester.transportservice.transport.TransportStatus.setHandshake(status);
             }
 
             return status;
@@ -145,13 +158,13 @@ abstract class OutboundMessage extends NetworkMessage {
         private final Set<String> features;
 
         Response(
-            ThreadContext threadContext,
-            Set<String> features,
-            Writeable message,
-            Version version,
-            long requestId,
-            boolean isHandshake,
-            boolean compress
+                ThreadContext threadContext,
+                Set<String> features,
+                Writeable message,
+                Version version,
+                long requestId,
+                boolean isHandshake,
+                boolean compress
         ) {
             super(threadContext, version, setStatus(compress, isHandshake, message), requestId, message);
             this.features = features;

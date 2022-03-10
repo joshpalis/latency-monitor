@@ -1,14 +1,3 @@
-/*
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
- *
- * Modifications Copyright OpenSearch Contributors. See
- * GitHub history for details.
- */
-
 package org.opensearch.latencytester.transportservice.netty4;
 
 import io.netty.bootstrap.Bootstrap;
@@ -21,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.opensearch.ExceptionsHelper;
 import org.opensearch.Version;
+import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.common.lease.Releasables;
@@ -34,6 +24,7 @@ import org.opensearch.common.util.concurrent.OpenSearchExecutors;
 import org.opensearch.core.internal.net.NetUtils;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.TcpChannel;
 import org.opensearch.transport.TcpServerChannel;
 import org.opensearch.transport.TransportSettings;
 import org.opensearch.latencytester.transportservice.*;
@@ -57,28 +48,28 @@ public class Netty extends TcpTransport {
     private final ByteSizeValue receivePredictorMax;
     private volatile Bootstrap clientBootstrap;
     private final Map<String, ServerBootstrap> serverBootstraps = newConcurrentMap();
-    protected Set<ProfileSettings> profileSettings;
+    protected  Set<ProfileSettings> profileSettings;
     public static final Setting<ByteSizeValue> NETTY_RECEIVE_PREDICTOR_SIZE = Setting.byteSizeSetting(
-        "transportservice.transport.netty.receive_predictor_size",
-        new ByteSizeValue(64, ByteSizeUnit.KB),
-        Setting.Property.NodeScope
+            "transportservice.transport.netty.receive_predictor_size",
+            new ByteSizeValue(64, ByteSizeUnit.KB),
+            Setting.Property.NodeScope
     );
     public static final Setting<ByteSizeValue> NETTY_RECEIVE_PREDICTOR_MIN = byteSizeSetting(
-        "transportservice.transport.netty.receive_predictor_min",
-        NETTY_RECEIVE_PREDICTOR_SIZE,
-        Setting.Property.NodeScope
+            "transportservice.transport.netty.receive_predictor_min",
+            NETTY_RECEIVE_PREDICTOR_SIZE,
+            Setting.Property.NodeScope
     );
     public static final Setting<ByteSizeValue> NETTY_RECEIVE_PREDICTOR_MAX = byteSizeSetting(
-        "transportservice.transport.netty.receive_predictor_max",
-        NETTY_RECEIVE_PREDICTOR_SIZE,
-        Setting.Property.NodeScope
+            "transportservice.transport.netty.receive_predictor_max",
+            NETTY_RECEIVE_PREDICTOR_SIZE,
+            Setting.Property.NodeScope
     );
 
     public static final Setting<Integer> WORKER_COUNT = new Setting<>(
-        "transport.netty.worker_count",
-        (s) -> Integer.toString(OpenSearchExecutors.allocatedProcessors(s)),
-        (s) -> Setting.parseInt(s, 1, "transport.netty.worker_count"),
-        Setting.Property.NodeScope
+            "transport.netty.worker_count",
+            (s) -> Integer.toString(OpenSearchExecutors.allocatedProcessors(s)),
+            (s) -> Setting.parseInt(s, 1, "transport.netty.worker_count"),
+            Setting.Property.NodeScope
     );
 
     public Netty(
@@ -95,9 +86,7 @@ public class Netty extends TcpTransport {
         Netty4Utils.setAvailableProcessors(OpenSearchExecutors.NODE_PROCESSORS_SETTING.get(settings));
         NettyAllocator.logAllocatorDescriptionIfNeeded();
         this.sharedGroupFactory = sharedGroupFactory;
-        this.profileSettings = getProfileSettings(
-            Settings.builder().put("transport.profiles.test.port", "5555").put("transport.profiles.default.port", "3333").build()
-        );
+        this.profileSettings = getProfileSettings(Settings.builder().put("transport.profiles.test.port", "5555").put("transport.profiles.default.port", "3333").build());
         // See AdaptiveReceiveBufferSizePredictor#DEFAULT_XXX for default values in netty..., we can use higher ones for us, even fixed one
         this.receivePredictorMin = NETTY_RECEIVE_PREDICTOR_MIN.get(settings);
         this.receivePredictorMax = NETTY_RECEIVE_PREDICTOR_MAX.get(settings);
@@ -105,9 +94,9 @@ public class Netty extends TcpTransport {
             recvByteBufAllocator = new FixedRecvByteBufAllocator((int) receivePredictorMax.getBytes());
         } else {
             recvByteBufAllocator = new AdaptiveRecvByteBufAllocator(
-                (int) receivePredictorMin.getBytes(),
-                (int) receivePredictorMin.getBytes(),
-                (int) receivePredictorMax.getBytes()
+                    (int) receivePredictorMin.getBytes(),
+                    (int) receivePredictorMin.getBytes(),
+                    (int) receivePredictorMax.getBytes()
             );
         }
     }
@@ -152,14 +141,14 @@ public class Netty extends TcpTransport {
         String name = profileSettings.profileName;
         if (logger.isDebugEnabled()) {
             logger.debug(
-                "using profile[{}], worker_count[{}], port[{}], bind_host[{}], publish_host[{}], receive_predictor[{}->{}]",
-                name,
-                sharedGroupFactory.getTransportWorkerCount(),
-                profileSettings.portOrRange,
-                profileSettings.bindHosts,
-                profileSettings.publishHosts,
-                receivePredictorMin,
-                receivePredictorMax
+                    "using profile[{}], worker_count[{}], port[{}], bind_host[{}], publish_host[{}], receive_predictor[{}->{}]",
+                    name,
+                    sharedGroupFactory.getTransportWorkerCount(),
+                    profileSettings.portOrRange,
+                    profileSettings.bindHosts,
+                    profileSettings.publishHosts,
+                    receivePredictorMin,
+                    receivePredictorMax
             );
         }
 
@@ -220,6 +209,7 @@ public class Netty extends TcpTransport {
         serverBootstraps.put(name, serverBootstrap);
     }
 
+
     @Override
     protected TcpServerChannel bind(String s, InetSocketAddress inetSocketAddress) throws IOException {
         Channel channel = serverBootstraps.get(s).bind(inetSocketAddress).syncUninterruptibly().channel();
@@ -227,6 +217,7 @@ public class Netty extends TcpTransport {
         channel.attr(SERVER_CHANNEL_KEY).set(esChannel);
         return esChannel;
     }
+
 
     // client
     private Bootstrap createClientBootstrap(SharedGroupFactory.SharedGroup sharedGroup) {
@@ -281,7 +272,7 @@ public class Netty extends TcpTransport {
     }
 
     static final AttributeKey<Netty4TcpServerChannel> SERVER_CHANNEL_KEY = AttributeKey.newInstance("es-server-channel");
-    static final AttributeKey<Netty4TcpChannel> CHANNEL_KEY = AttributeKey.newInstance("es-channel");
+    static final AttributeKey<org.opensearch.latencytester.transportservice.netty4.Netty4TcpChannel> CHANNEL_KEY = AttributeKey.newInstance("es-channel");
 
     @ChannelHandler.Sharable
     private class ServerChannelExceptionHandler extends ChannelInboundHandlerAdapter {
@@ -306,6 +297,8 @@ public class Netty extends TcpTransport {
         });
     }
 
+
+
     // Another class
     protected class ServerChannelInitializer extends ChannelInitializer<Channel> {
 
@@ -324,8 +317,8 @@ public class Netty extends TcpTransport {
             Netty4TcpChannel nettyTcpChannel = new Netty4TcpChannel(ch, true, name, ch.newSucceededFuture());
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             ch.pipeline().addLast("byte_buf_sizer", sizer);
-            ch.pipeline().addLast("logging", new OpenSearchLoggingHandler());
-            ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, Netty.this));
+            ch.pipeline().addLast("logging", new org.opensearch.latencytester.transportservice.netty4.OpenSearchLoggingHandler());
+            ch.pipeline().addLast("dispatcher", new org.opensearch.latencytester.transportservice.netty4.Netty4MessageChannelHandler(pageCacheRecycler, Netty.this));
             serverAcceptedChannel(nettyTcpChannel);
         }
 
