@@ -60,6 +60,10 @@ final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
         final ByteBuf buffer = (ByteBuf) msg;
         Netty4TcpChannel channel = ctx.channel().attr(Netty.CHANNEL_KEY).get();
         final BytesReference wrapped = Netty4Utils.toBytesReference(buffer);
+
+        // print telnet message
+         System.out.println("MESSAGE RECEIVED:" + wrapped.utf8ToString());
+
         // try (ReleasableBytesReference reference = new ReleasableBytesReference(wrapped, buffer::release)) {
         // pipeline.handleBytes(channel, reference);
         // }
