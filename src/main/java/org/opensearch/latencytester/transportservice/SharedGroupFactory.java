@@ -29,6 +29,7 @@
  * Modifications Copyright OpenSearch Contributors. See
  * GitHub history for details.
  */
+
 package org.opensearch.latencytester.transportservice;
 
 import io.netty.channel.EventLoopGroup;

@@ -12,7 +12,6 @@ import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
 import org.opensearch.test.rest.yaml.ClientYamlTestCandidate;
 import org.opensearch.test.rest.yaml.OpenSearchClientYamlSuiteTestCase;
 
-
 public class LatencyTesterClientYamlTestSuiteIT extends OpenSearchClientYamlSuiteTestCase {
 
     public LatencyTesterClientYamlTestSuiteIT(@Name("yaml") ClientYamlTestCandidate testCandidate) {

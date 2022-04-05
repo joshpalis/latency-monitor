@@ -1,5 +1,7 @@
 package org.opensearch.latencytester.plugin;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.Version;
@@ -15,13 +17,15 @@ import org.opensearch.discovery.PluginResponse;
 import org.opensearch.indices.IndicesModule;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.indices.breaker.NoneCircuitBreakerService;
+import org.opensearch.latencytester.transportservice.ActionListener;
+import org.opensearch.latencytester.transportservice.ExtensionSettings;
+import org.opensearch.latencytester.transportservice.SharedGroupFactory;
 import org.opensearch.search.SearchModule;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.*;
-import org.opensearch.latencytester.transportservice.ActionListener;
-import org.opensearch.latencytester.transportservice.SharedGroupFactory;
 import org.opensearch.latencytester.transportservice.netty4.Netty4Transport;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -35,14 +39,34 @@ import static org.opensearch.common.UUIDs.randomBase64UUID;
 public class RunPlugin {
 
     public static final String REQUEST_EXTENSION_ACTION_NAME = "internal:discovery/extensions";
+
+    private static ExtensionSettings extensionSettings = null;
+
+    static {
+        try {
+            extensionSettings = getExtensionSettings();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static final Settings settings = Settings.builder()
-        .put("node.name", "node_extension")
-        .put(TransportSettings.BIND_HOST.getKey(), "127.0.0.1")
-        .put(TransportSettings.PORT.getKey(), "4532")
+        .put("node.name", extensionSettings.getExtensionname())
+        .put(TransportSettings.BIND_HOST.getKey(), extensionSettings.getHostaddress())
+        .put(TransportSettings.PORT.getKey(), extensionSettings.getHostport())
         .build();
     private static final Logger logger = LogManager.getLogger(RunPlugin.class);
     public static final TransportInterceptor NOOP_TRANSPORT_INTERCEPTOR = new TransportInterceptor() {
     };
+
+    public RunPlugin() throws IOException {}
+
+    public static ExtensionSettings getExtensionSettings() throws IOException {
+        File file = new File(ExtensionSettings.EXTENSION_DESCRIPTOR);
+        ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
+        ExtensionSettings extensionSettings = objectMapper.readValue(file, ExtensionSettings.class);
+        return extensionSettings;
+    }
 
     PluginResponse handlePluginsRequest(PluginRequest pluginRequest) {
         logger.info("Handling Plugins Request");
@@ -99,7 +123,7 @@ public class RunPlugin {
             threadPool,
             NOOP_TRANSPORT_INTERCEPTOR,
             boundAddress -> DiscoveryNode.createLocal(
-                Settings.builder().put("node.name", "node_extension").build(),
+                Settings.builder().put("node.name", extensionSettings.getExtensionname()).build(),
                 boundAddress.publishAddress(),
                 randomBase64UUID()
             ),

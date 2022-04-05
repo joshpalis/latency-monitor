@@ -9,6 +9,7 @@ import org.opensearch.common.transport.TransportAddress;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.opensearch.transport.TransportService;
 import org.opensearch.transport.TransportSettings;
+
 import java.net.*;
 import java.io.*;
 
@@ -35,7 +36,7 @@ public class TransportCommunicationIT extends OpenSearchIntegTestCase {
     }
 
     @Test
-    public void testSocketSetup() {
+    public void testSocketSetup() throws IOException {
 
         RunPlugin runPlugin = new RunPlugin();
         ThreadPool threadPool = new TestThreadPool("test");

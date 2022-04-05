@@ -6,6 +6,7 @@
  * compatible open source license.
  */
 package org.opensearch.latencytester.plugin;
+
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.IndexService;
 import org.opensearch.index.engine.Engine;
@@ -23,15 +24,15 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.index.shard.ShardId;
 
 public class LatencyTesterPlugin extends Plugin {
-    
-    // goal : 
-    //      - build a new plugin and call this in the critical lifecycle of searching / indexing
+
+    // goal :
+    // - build a new plugin and call this in the critical lifecycle of searching / indexing
 
     // approach :
-    //      - Identify plugin extension point to leverage. onIndexModule
-    //      - onIndexModule contains methods called addIndexEventListener
-    //      - addIndexEventListener is a primary extension point for plugins
-    //      - using the event listener, I can call beforeIndexCreated / afterIndexCreated
+    // - Identify plugin extension point to leverage. onIndexModule
+    // - onIndexModule contains methods called addIndexEventListener
+    // - addIndexEventListener is a primary extension point for plugins
+    // - using the event listener, I can call beforeIndexCreated / afterIndexCreated
 
     private static final Logger logger = LogManager.getLogger(LatencyTesterPlugin.class);
 
@@ -39,10 +40,9 @@ public class LatencyTesterPlugin extends Plugin {
     @Override
     public void onIndexModule(IndexModule module) {
 
-
         module.addIndexEventListener(new IndexEventListener() {
             @Override
-            public void beforeIndexCreated(Index index, Settings indexSettings){
+            public void beforeIndexCreated(Index index, Settings indexSettings) {
 
                 logger.info("TEST INDEX EVENT : BEFORE INDEX CREATED");
             }
@@ -57,20 +57,20 @@ public class LatencyTesterPlugin extends Plugin {
         module.addIndexOperationListener(new IndexingOperationListener() {
 
             @Override
-            public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result){
+            public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result) {
                 logger.info("TEST INDEX OPERATION : POST INDEX");
             }
 
             @Override
-            public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result){
+            public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
                 logger.info("TEST INDEX OPERATION : POST DELETE");
             }
         });
 
         module.addSearchOperationListener(new SearchOperationListener() {
-            
+
             @Override
-            public void onPreQueryPhase(SearchContext searchContext){
+            public void onPreQueryPhase(SearchContext searchContext) {
                 logger.info("TEST SEARCH OPERATION : PRE QUERY PHASE");
             }
         });

@@ -270,3 +270,114 @@ java.lang.IllegalAccessException: class io.netty.util.internal.PlatformDependent
 2022-04-05 22:59:52.614 [opensearch[node_extension][transport_worker][T#6]] TRACE org.opensearch.latencytester.transportservice.netty4.OpenSearchLoggingHandler - [id: 0x84ec9025, L:/127.0.0.1:4532 ! R:/127.0.0.1:55078] UNREGISTERED
 2022-04-05 22:59:52.614 [opensearch[node_extension][transport_worker][T#4]] TRACE org.opensearch.latencytester.transportservice.netty4.OpenSearchLoggingHandler - [id: 0x27e7981e, L:/127.0.0.1:4532 ! R:/127.0.0.1:55072] INACTIVE
 2022-04-05 22:59:52.614 [opensearch[node_extension][transport_worker][T#4]] TRACE org.opensearch.latencytester.transportservice.netty4.OpenSearchLoggingHandler - [id: 0x27e7981e, L:/127.0.0.1:4532 ! R:/127.0.0.1:55072] UNREGISTERED
+2022-04-05 23:46:12.626 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [force_merge], size [1], queue size [unbounded]
+2022-04-05 23:46:12.628 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [fetch_shard_started], core [1], max [16], keep alive [5m]
+2022-04-05 23:46:12.629 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [listener], size [4], queue size [unbounded]
+2022-04-05 23:46:12.629 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [refresh], core [1], max [4], keep alive [5m]
+2022-04-05 23:46:12.631 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [system_write], size [4], queue size [1k]
+2022-04-05 23:46:12.631 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [generic], core [4], max [128], keep alive [30s]
+2022-04-05 23:46:12.632 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [warmer], core [1], max [4], keep alive [5m]
+2022-04-05 23:46:12.633 [main] DEBUG org.opensearch.common.util.concurrent.QueueResizingOpenSearchThreadPoolExecutor - thread pool [extension/search] will adjust queue by [50] when determining automatic queue size
+2022-04-05 23:46:12.633 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [search], size [13], queue size [1k]
+2022-04-05 23:46:12.634 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [flush], core [1], max [4], keep alive [5m]
+2022-04-05 23:46:12.634 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [fetch_shard_store], core [1], max [16], keep alive [5m]
+2022-04-05 23:46:12.634 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [management], core [1], max [5], keep alive [5m]
+2022-04-05 23:46:12.634 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [get], size [8], queue size [1k]
+2022-04-05 23:46:12.635 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [analyze], size [1], queue size [16]
+2022-04-05 23:46:12.635 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [system_read], size [4], queue size [2k]
+2022-04-05 23:46:12.636 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [write], size [8], queue size [10k]
+2022-04-05 23:46:12.636 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [snapshot], core [1], max [4], keep alive [5m]
+2022-04-05 23:46:12.636 [main] DEBUG org.opensearch.common.util.concurrent.QueueResizingOpenSearchThreadPoolExecutor - thread pool [extension/search_throttled] will adjust queue by [50] when determining automatic queue size
+2022-04-05 23:46:12.637 [main] DEBUG org.opensearch.threadpool.ThreadPool - created thread pool: name [search_throttled], size [1], queue size [100]
+2022-04-05 23:46:13.156 [main] DEBUG io.netty.util.internal.logging.InternalLoggerFactory - Using Log4J2 as the default logging framework
+2022-04-05 23:46:13.158 [main] DEBUG io.netty.util.internal.PlatformDependent0 - -Dio.netty.noUnsafe: false
+2022-04-05 23:46:13.158 [main] DEBUG io.netty.util.internal.PlatformDependent0 - Java version: 14
+2022-04-05 23:46:13.159 [main] DEBUG io.netty.util.internal.PlatformDependent0 - sun.misc.Unsafe.theUnsafe: available
+2022-04-05 23:46:13.160 [main] DEBUG io.netty.util.internal.PlatformDependent0 - sun.misc.Unsafe.copyMemory: available
+2022-04-05 23:46:13.160 [main] DEBUG io.netty.util.internal.PlatformDependent0 - java.nio.Buffer.address: available
+2022-04-05 23:46:13.164 [main] DEBUG io.netty.util.internal.PlatformDependent0 - direct buffer constructor: unavailable
+java.lang.UnsupportedOperationException: Reflective setAccessible(true) disabled
+	at io.netty.util.internal.ReflectionUtil.trySetAccessible(ReflectionUtil.java:31) ~[netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.internal.PlatformDependent0$4.run(PlatformDependent0.java:253) ~[netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at java.security.AccessController.doPrivileged(AccessController.java:312) ~[?:?]
+	at io.netty.util.internal.PlatformDependent0.<clinit>(PlatformDependent0.java:247) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.internal.PlatformDependent.isAndroid(PlatformDependent.java:294) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.internal.PlatformDependent.<clinit>(PlatformDependent.java:88) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.ConstantPool.<init>(ConstantPool.java:34) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.AttributeKey$1.<init>(AttributeKey.java:27) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.AttributeKey.<clinit>(AttributeKey.java:27) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at org.opensearch.latencytester.transportservice.netty4.Netty4Transport.<clinit>(Netty4Transport.java:306) [main/:?]
+	at org.opensearch.latencytester.plugin.RunPlugin.getNetty4Transport(RunPlugin.java:97) [main/:?]
+	at org.opensearch.latencytester.plugin.RunPlugin.getTransportService(RunPlugin.java:115) [main/:?]
+	at org.opensearch.latencytester.plugin.RunPlugin.main(RunPlugin.java:165) [main/:?]
+2022-04-05 23:46:13.171 [main] DEBUG io.netty.util.internal.PlatformDependent0 - java.nio.Bits.unaligned: available, true
+2022-04-05 23:46:13.172 [main] DEBUG io.netty.util.internal.PlatformDependent0 - jdk.internal.misc.Unsafe.allocateUninitializedArray(int): unavailable
+java.lang.IllegalAccessException: class io.netty.util.internal.PlatformDependent0$6 cannot access class jdk.internal.misc.Unsafe (in module java.base) because module java.base does not export jdk.internal.misc to unnamed module @35cd68d4
+	at jdk.internal.reflect.Reflection.newIllegalAccessException(Reflection.java:376) ~[?:?]
+	at java.lang.reflect.AccessibleObject.checkAccess(AccessibleObject.java:647) ~[?:?]
+	at java.lang.reflect.Method.invoke(Method.java:556) ~[?:?]
+	at io.netty.util.internal.PlatformDependent0$6.run(PlatformDependent0.java:375) ~[netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at java.security.AccessController.doPrivileged(AccessController.java:312) ~[?:?]
+	at io.netty.util.internal.PlatformDependent0.<clinit>(PlatformDependent0.java:366) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.internal.PlatformDependent.isAndroid(PlatformDependent.java:294) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.internal.PlatformDependent.<clinit>(PlatformDependent.java:88) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.ConstantPool.<init>(ConstantPool.java:34) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.AttributeKey$1.<init>(AttributeKey.java:27) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at io.netty.util.AttributeKey.<clinit>(AttributeKey.java:27) [netty-common-4.1.73.Final.jar:4.1.73.Final]
+	at org.opensearch.latencytester.transportservice.netty4.Netty4Transport.<clinit>(Netty4Transport.java:306) [main/:?]
+	at org.opensearch.latencytester.plugin.RunPlugin.getNetty4Transport(RunPlugin.java:97) [main/:?]
+	at org.opensearch.latencytester.plugin.RunPlugin.getTransportService(RunPlugin.java:115) [main/:?]
+	at org.opensearch.latencytester.plugin.RunPlugin.main(RunPlugin.java:165) [main/:?]
+2022-04-05 23:46:13.173 [main] DEBUG io.netty.util.internal.PlatformDependent0 - java.nio.DirectByteBuffer.<init>(long, int): unavailable
+2022-04-05 23:46:13.174 [main] DEBUG io.netty.util.internal.PlatformDependent - sun.misc.Unsafe: available
+2022-04-05 23:46:13.174 [main] DEBUG io.netty.util.internal.PlatformDependent - maxDirectMemory: 4047503360 bytes (maybe)
+2022-04-05 23:46:13.175 [main] DEBUG io.netty.util.internal.PlatformDependent - -Dio.netty.tmpdir: /tmp (java.io.tmpdir)
+2022-04-05 23:46:13.175 [main] DEBUG io.netty.util.internal.PlatformDependent - -Dio.netty.bitMode: 64 (sun.arch.data.model)
+2022-04-05 23:46:13.176 [main] DEBUG io.netty.util.internal.PlatformDependent - -Dio.netty.maxDirectMemory: -1 bytes
+2022-04-05 23:46:13.176 [main] DEBUG io.netty.util.internal.PlatformDependent - -Dio.netty.uninitializedArrayAllocationThreshold: -1
+2022-04-05 23:46:13.177 [main] DEBUG io.netty.util.internal.CleanerJava9 - java.nio.ByteBuffer.cleaner(): available
+2022-04-05 23:46:13.177 [main] DEBUG io.netty.util.internal.PlatformDependent - -Dio.netty.noPreferDirect: false
+2022-04-05 23:46:13.216 [main] DEBUG io.netty.util.ResourceLeakDetector - -Dio.netty.leakDetection.level: simple
+2022-04-05 23:46:13.216 [main] DEBUG io.netty.util.ResourceLeakDetector - -Dio.netty.leakDetection.targetRecords: 4
+2022-04-05 23:46:13.217 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.numHeapArenas: 16
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.numDirectArenas: 16
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.pageSize: 8192
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.maxOrder: 11
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.chunkSize: 16777216
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.smallCacheSize: 256
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.normalCacheSize: 64
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.maxCachedBufferCapacity: 32768
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.cacheTrimInterval: 8192
+2022-04-05 23:46:13.218 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.cacheTrimIntervalMillis: 0
+2022-04-05 23:46:13.219 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.useCacheForAllThreads: true
+2022-04-05 23:46:13.219 [main] DEBUG io.netty.buffer.PooledByteBufAllocator - -Dio.netty.allocator.maxCachedByteBuffersPerChunk: 1023
+2022-04-05 23:46:13.222 [main] DEBUG io.netty.util.internal.InternalThreadLocalMap - -Dio.netty.threadLocalMap.stringBuilder.initialSize: 1024
+2022-04-05 23:46:13.223 [main] DEBUG io.netty.util.internal.InternalThreadLocalMap - -Dio.netty.threadLocalMap.stringBuilder.maxSize: 4096
+2022-04-05 23:46:13.235 [main] INFO  org.opensearch.latencytester.transportservice.NettyAllocator - creating NettyAllocator with the following configs: [name=opensearch_configured, chunk_size=256kb, suggested_max_allocation_size=256kb, factors={opensearch.unsafe.use_netty_default_chunk_and_page_size=false, g1gc_enabled=true, g1gc_region_size=1mb}]
+2022-04-05 23:46:13.253 [main] INFO  org.opensearch.transport.TransportService - Registered handler with actioninternal:transport/handshake
+2022-04-05 23:46:13.257 [main] DEBUG io.netty.channel.MultithreadEventLoopGroup - -Dio.netty.eventLoopThreads: 16
+2022-04-05 23:46:13.272 [main] DEBUG io.netty.channel.nio.NioEventLoop - -Dio.netty.noKeySetOptimization: false
+2022-04-05 23:46:13.272 [main] DEBUG io.netty.channel.nio.NioEventLoop - -Dio.netty.selectorAutoRebuildThreshold: 512
+2022-04-05 23:46:13.278 [main] DEBUG io.netty.util.internal.PlatformDependent - org.jctools-core.MpscChunkedArrayQueue: available
+2022-04-05 23:46:13.281 [main] TRACE io.netty.channel.nio.NioEventLoop - instrumented a special java.util.Set into: sun.nio.ch.EPollSelectorImpl@43af351a
+2022-04-05 23:46:13.282 [main] TRACE io.netty.channel.nio.NioEventLoop - instrumented a special java.util.Set into: sun.nio.ch.EPollSelectorImpl@4b97c4ad
+2022-04-05 23:46:13.282 [main] TRACE io.netty.channel.nio.NioEventLoop - instrumented a special java.util.Set into: sun.nio.ch.EPollSelectorImpl@7640a5b1
+2022-04-05 23:46:13.282 [main] TRACE io.netty.channel.nio.NioEventLoop - instrumented a special java.util.Set into: sun.nio.ch.EPollSelectorImpl@642f9a77
+2022-04-05 23:46:13.282 [main] TRACE io.netty.channel.nio.NioEventLoop - instrumented a special java.util.Set into: sun.nio.ch.EPollSelectorImpl@23f3da8b
+2022-04-05 23:46:13.282 [main] TRACE io.netty.channel.nio.NioEventLoop - instrumented a special java.util.Set into: sun.nio.ch.EPollSelectorImpl@5634d0f4
+2022-04-05 23:46:13.283 [main] TRACE io.netty.channel.nio.NioEventLoop - instrumented a special java.util.Set into: sun.nio.ch.EPollSelectorImpl@252a8aae
+2022-04-05 23:46:13.283 [main] TRACE io.netty.channel.nio.NioEventLoop - instrumented a special java.util.Set into: sun.nio.ch.EPollSelectorImpl@3d4e405e
+2022-04-05 23:46:13.296 [main] DEBUG org.opensearch.latencytester.transportservice.netty4.Netty4Transport - using profile[default], worker_count[8], port[4532], bind_host[[127.0.0.1]], publish_host[[]], receive_predictor[64kb->64kb]
+2022-04-05 23:46:13.303 [main] DEBUG org.opensearch.transport.TcpTransport - binding server bootstrap to: [127.0.0.1]
+2022-04-05 23:46:13.311 [main] DEBUG io.netty.channel.DefaultChannelId - -Dio.netty.processId: 15630 (auto-detected)
+2022-04-05 23:46:13.313 [main] DEBUG io.netty.util.NetUtil - -Djava.net.preferIPv4Stack: false
+2022-04-05 23:46:13.313 [main] DEBUG io.netty.util.NetUtil - -Djava.net.preferIPv6Addresses: false
+2022-04-05 23:46:13.314 [main] DEBUG io.netty.util.NetUtilInitializations - Loopback interface: lo (lo, 0:0:0:0:0:0:0:1%lo)
+2022-04-05 23:46:13.315 [main] DEBUG io.netty.util.NetUtil - /proc/sys/net/core/somaxconn: 4096
+2022-04-05 23:46:13.316 [main] DEBUG io.netty.channel.DefaultChannelId - -Dio.netty.machineId: 02:42:1f:ff:fe:15:e8:77 (auto-detected)
+2022-04-05 23:46:13.331 [main] DEBUG io.netty.buffer.ByteBufUtil - -Dio.netty.allocator.type: pooled
+2022-04-05 23:46:13.332 [main] DEBUG io.netty.buffer.ByteBufUtil - -Dio.netty.threadLocalDirectBufferSize: 0
+2022-04-05 23:46:13.332 [main] DEBUG io.netty.buffer.ByteBufUtil - -Dio.netty.maxThreadLocalCharBufferSize: 16384
+2022-04-05 23:46:13.345 [main] DEBUG org.opensearch.transport.TcpTransport - Bound profile [default] to address {127.0.0.1:4532}
+2022-04-05 23:46:13.347 [main] INFO  org.opensearch.transport.TransportService - publish_address {127.0.0.1:4532}, bound_addresses {127.0.0.1:4532}
+2022-04-05 23:46:13.363 [main] INFO  org.opensearch.transport.TransportService - Registered handler with actioninternal:discovery/extensions
