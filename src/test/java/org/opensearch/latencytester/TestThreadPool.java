@@ -1,8 +1,8 @@
-package org.opensearch.latencytester.transportservice;//
 // Source code recreated from a .class file by IntelliJ IDEA
 // (powered by FernFlower decompiler)
 //
 
+package org.opensearch.latencytester;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -30,7 +30,7 @@ public class TestThreadPool extends ThreadPool {
     }
 
     public ExecutorService executor(String name) {
-        return (ExecutorService)(this.returnRejectingExecutor ? this.rejectingExecutor : super.executor(name));
+        return (ExecutorService) (this.returnRejectingExecutor ? this.rejectingExecutor : super.executor(name));
     }
 
     public void startForcingRejections() {

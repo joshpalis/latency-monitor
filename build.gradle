@@ -10,9 +10,10 @@ ext {
 
 apply plugin: "application"
 version '1.0-SNAPSHOT'
-mainClassName = 'org.opensearch.latencytester.transportservice.RunPlugin'
+mainClassName = 'org.opensearch.latencytester.plugin.RunPlugin'
 
 repositories {
+        mavenLocal()
         maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
         mavenCentral()
 }
