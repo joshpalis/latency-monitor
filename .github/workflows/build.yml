@@ -8,6 +8,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
+        # uncomment once opensearch feature branch is merged into main
+        # repository: opensearch-project/OpenSearch 
           repository: saratvemulapalli/OpenSearch
           ref: feature/extensions
       - name: Publish to Maven Local
