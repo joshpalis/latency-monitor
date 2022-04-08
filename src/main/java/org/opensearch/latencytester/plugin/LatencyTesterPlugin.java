@@ -41,37 +41,11 @@ public class LatencyTesterPlugin extends Plugin {
     public void onIndexModule(IndexModule module) {
 
         module.addIndexEventListener(new IndexEventListener() {
-            @Override
-            public void beforeIndexCreated(Index index, Settings indexSettings) {
-
-                logger.info("TEST INDEX EVENT : BEFORE INDEX CREATED");
-            }
 
             @Override
             public void beforeIndexRemoved(IndexService indexService, IndexRemovalReason reason) {
 
                 logger.info("TEST INDEX EVENT : BEFORE INDEX REMOVED");
-            }
-        });
-
-        module.addIndexOperationListener(new IndexingOperationListener() {
-
-            @Override
-            public void postIndex(ShardId shardId, Engine.Index index, Engine.IndexResult result) {
-                logger.info("TEST INDEX OPERATION : POST INDEX");
-            }
-
-            @Override
-            public void postDelete(ShardId shardId, Engine.Delete delete, Engine.DeleteResult result) {
-                logger.info("TEST INDEX OPERATION : POST DELETE");
-            }
-        });
-
-        module.addSearchOperationListener(new SearchOperationListener() {
-
-            @Override
-            public void onPreQueryPhase(SearchContext searchContext) {
-                logger.info("TEST SEARCH OPERATION : PRE QUERY PHASE");
             }
         });
     }
