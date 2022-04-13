@@ -95,7 +95,7 @@ public class RunPlugin {
         NetworkService networkService = new NetworkService(Collections.emptyList());
         PageCacheRecycler pageCacheRecycler = new PageCacheRecycler(settings);
         IndicesModule indicesModule = new IndicesModule(Collections.emptyList());
-        SearchModule searchModule = new SearchModule(settings, Collections.emptyList());
+        SearchModule searchModule = new SearchModule(settings, false, Collections.emptyList());
 
         List<NamedWriteableRegistry.Entry> namedWriteables = Stream.of(
             NetworkModule.getNamedWriteables().stream(),
@@ -174,12 +174,12 @@ public class RunPlugin {
 
         );
         transportService.registerRequestHandler(
-                PluginsOrchestrator.INDICES_EXTENSION_NAME_ACTION_NAME,
-                ThreadPool.Names.GENERIC,
-                false,
-                false,
-                IndicesModuleRequest::new,
-                ((request, channel, task) -> channel.sendResponse(handleIndicesModuleNameRequest(request)))
+            PluginsOrchestrator.INDICES_EXTENSION_NAME_ACTION_NAME,
+            ThreadPool.Names.GENERIC,
+            false,
+            false,
+            IndicesModuleRequest::new,
+            ((request, channel, task) -> channel.sendResponse(handleIndicesModuleNameRequest(request)))
         );
     }
 

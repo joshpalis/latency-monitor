@@ -9,19 +9,11 @@ package org.opensearch.latencytester.plugin;
 
 import org.opensearch.index.IndexModule;
 import org.opensearch.index.IndexService;
-import org.opensearch.index.engine.Engine;
-import org.opensearch.index.Index;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.index.shard.IndexEventListener;
-import org.opensearch.index.shard.IndexingOperationListener;
-import org.opensearch.index.shard.SearchOperationListener;
 import org.opensearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.search.internal.SearchContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import org.opensearch.index.shard.ShardId;
 
 public class LatencyTesterPlugin extends Plugin {
 
