@@ -5,7 +5,7 @@ apply plugin: 'idea'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.yaml-rest-test'
 
-def pluginName = 'latency-tester-3.0.0'
+def pluginName = 'latency-tester-3.0.0.0'
 def pluginDescription = 'An OpenSearch plugin to perform latency testing'
 def projectPath = 'org.opensearch'
 def pathToPlugin = 'latencytester.plugin'
