@@ -95,7 +95,7 @@ public class RunPlugin {
         NetworkService networkService = new NetworkService(Collections.emptyList());
         PageCacheRecycler pageCacheRecycler = new PageCacheRecycler(settings);
         IndicesModule indicesModule = new IndicesModule(Collections.emptyList());
-        SearchModule searchModule = new SearchModule(settings, false, Collections.emptyList());
+        SearchModule searchModule = new SearchModule(settings, Collections.emptyList());
 
         List<NamedWriteableRegistry.Entry> namedWriteables = Stream.of(
             NetworkModule.getNamedWriteables().stream(),
