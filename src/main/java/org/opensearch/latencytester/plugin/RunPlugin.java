@@ -23,7 +23,7 @@ import org.opensearch.indices.breaker.NoneCircuitBreakerService;
 import org.opensearch.latencytester.transportservice.ActionListener;
 import org.opensearch.latencytester.transportservice.ExtensionSettings;
 import org.opensearch.latencytester.transportservice.SharedGroupFactory;
-import org.opensearch.plugins.PluginsOrchestrator;
+import org.opensearch.extensions.ExtensionsOrchestrator;
 import org.opensearch.search.SearchModule;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.*;
@@ -42,6 +42,7 @@ import static org.opensearch.common.UUIDs.randomBase64UUID;
 
 public class RunPlugin {
 
+    public static final String REQUEST_EXTENSION_ACTION_NAME = "internal:discovery/extensions";
     private static ExtensionSettings extensionSettings = null;
 
     static {
@@ -157,7 +158,7 @@ public class RunPlugin {
         transportService.start();
         transportService.acceptIncomingRequests();
         transportService.registerRequestHandler(
-            PluginsOrchestrator.REQUEST_EXTENSION_ACTION_NAME,
+            REQUEST_EXTENSION_ACTION_NAME,
             ThreadPool.Names.GENERIC,
             false,
             false,
@@ -165,7 +166,7 @@ public class RunPlugin {
             (request, channel, task) -> channel.sendResponse(handlePluginsRequest(request))
         );
         transportService.registerRequestHandler(
-            PluginsOrchestrator.INDICES_EXTENSION_POINT_ACTION_NAME,
+            ExtensionsOrchestrator.INDICES_EXTENSION_POINT_ACTION_NAME,
             ThreadPool.Names.GENERIC,
             false,
             false,
@@ -174,7 +175,7 @@ public class RunPlugin {
 
         );
         transportService.registerRequestHandler(
-            PluginsOrchestrator.INDICES_EXTENSION_NAME_ACTION_NAME,
+            ExtensionsOrchestrator.INDICES_EXTENSION_NAME_ACTION_NAME,
             ThreadPool.Names.GENERIC,
             false,
             false,
