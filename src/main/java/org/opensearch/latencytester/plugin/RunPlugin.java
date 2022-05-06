@@ -72,20 +72,20 @@ public class RunPlugin {
     }
 
     PluginResponse handlePluginsRequest(PluginRequest pluginRequest) {
-        logger.info("Handling Plugins Request");
+        // logger.info("Handling Plugins Request");
         PluginResponse pluginResponse = new PluginResponse("RealExtension");
         return pluginResponse;
     }
 
     IndicesModuleResponse handleIndicesModuleRequest(IndicesModuleRequest indicesModuleRequest) {
-        logger.info("Indices Module Request");
+        // logger.info("Indices Module Request");
         IndicesModuleResponse indicesModuleResponse = new IndicesModuleResponse(true, true, true);
         return indicesModuleResponse;
     }
 
     // Works as beforeIndexRemoved
     IndicesModuleNameResponse handleIndicesModuleNameRequest(IndicesModuleRequest indicesModuleRequest) {
-        logger.info("Indices Module Name Request");
+        // logger.info("Indices Module Name Request");
         IndicesModuleNameResponse indicesModuleNameResponse = new IndicesModuleNameResponse(true);
         return indicesModuleNameResponse;
     }
