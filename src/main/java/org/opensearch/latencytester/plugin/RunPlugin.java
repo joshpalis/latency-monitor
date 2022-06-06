@@ -18,6 +18,8 @@ import org.opensearch.index.IndicesModuleNameResponse;
 import org.opensearch.index.IndicesModuleRequest;
 import org.opensearch.index.IndicesModuleResponse;
 import org.opensearch.indices.IndicesModule;
+import org.opensearch.common.io.stream.NamedWriteableRegistryRequest;
+import org.opensearch.common.io.stream.NamedWriteableRegistryResponse;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.indices.breaker.NoneCircuitBreakerService;
 import org.opensearch.latencytester.transportservice.ActionListener;
@@ -32,7 +34,9 @@ import org.opensearch.latencytester.transportservice.netty4.Netty4Transport;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -73,8 +77,26 @@ public class RunPlugin {
 
     PluginResponse handlePluginsRequest(PluginRequest pluginRequest) {
         // logger.info("Handling Plugins Request");
-        PluginResponse pluginResponse = new PluginResponse("RealExtension");
+        PluginResponse pluginResponse = new PluginResponse("NamedWriteableRegistry");
         return pluginResponse;
+    }
+
+    NamedWriteableRegistryResponse handleNamedWriteableRegistryRequest(NamedWriteableRegistryRequest namedWriteableRegistryRequest) {
+
+        logger.info("======================== NAMED WRITEABLE REGISTRY RESPONSE HIT");
+
+        // create map for registry entries to send over the wire
+        Map<String, String> registry = new HashMap<>();
+
+        // test entries
+        registry.put("test_key1", "test_value");
+        registry.put("test_key2", "test_value");
+        registry.put("test_key3", "test_value");
+        registry.put("test_key4", "test_value");
+
+        // create and return named writeable registry response
+        NamedWriteableRegistryResponse namedWriteableRegistryResponse = new NamedWriteableRegistryResponse(registry);
+        return namedWriteableRegistryResponse;
     }
 
     IndicesModuleResponse handleIndicesModuleRequest(IndicesModuleRequest indicesModuleRequest) {
@@ -157,6 +179,10 @@ public class RunPlugin {
         // start transport service and accept incoming requests
         transportService.start();
         transportService.acceptIncomingRequests();
+
+        // register request handlers for OpenSearch requests
+
+        // initial plugin request handler for TCP handshake
         transportService.registerRequestHandler(
             REQUEST_EXTENSION_ACTION_NAME,
             ThreadPool.Names.GENERIC,
@@ -165,23 +191,34 @@ public class RunPlugin {
             PluginRequest::new,
             (request, channel, task) -> channel.sendResponse(handlePluginsRequest(request))
         );
-        transportService.registerRequestHandler(
-            ExtensionsOrchestrator.INDICES_EXTENSION_POINT_ACTION_NAME,
-            ThreadPool.Names.GENERIC,
-            false,
-            false,
-            IndicesModuleRequest::new,
-            ((request, channel, task) -> channel.sendResponse(handleIndicesModuleRequest(request)))
 
-        );
+        // Intial xcontent registry request after data transfer connection has been established
         transportService.registerRequestHandler(
-            ExtensionsOrchestrator.INDICES_EXTENSION_NAME_ACTION_NAME,
+            ExtensionsOrchestrator.NAMED_WRITEABLE_REGISTRY_EXTENSION_POINT_ACTION_NAME,
             ThreadPool.Names.GENERIC,
             false,
             false,
-            IndicesModuleRequest::new,
-            ((request, channel, task) -> channel.sendResponse(handleIndicesModuleNameRequest(request)))
+            NamedWriteableRegistryRequest::new,
+            (request, channel, task) -> channel.sendResponse(handleNamedWriteableRegistryRequest(request))
         );
+        
+        // transportService.registerRequestHandler(
+        //     ExtensionsOrchestrator.INDICES_EXTENSION_POINT_ACTION_NAME,
+        //     ThreadPool.Names.GENERIC,
+        //     false,
+        //     false,
+        //     IndicesModuleRequest::new,
+        //     ((request, channel, task) -> channel.sendResponse(handleIndicesModuleRequest(request)))
+
+        // );
+        // transportService.registerRequestHandler(
+        //     ExtensionsOrchestrator.INDICES_EXTENSION_NAME_ACTION_NAME,
+        //     ThreadPool.Names.GENERIC,
+        //     false,
+        //     false,
+        //     IndicesModuleRequest::new,
+        //     ((request, channel, task) -> channel.sendResponse(handleIndicesModuleNameRequest(request)))
+        // );
     }
 
     // manager method for action listener
