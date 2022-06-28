@@ -30,7 +30,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.latencytester.transportservice;
+package org.opensearch.latencytester.transportservice.netty4;
 
 import io.netty.channel.Channel;
 import io.netty.channel.socket.nio.NioSocketChannel;

@@ -1,3 +1,14 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ *
+ * Modifications Copyright OpenSearch Contributors. See
+ * GitHub history for details.
+ */
+
 package org.opensearch.latencytester.transportservice;
 
 public class ExtensionSettings {
@@ -5,10 +16,6 @@ public class ExtensionSettings {
     private String extensionname;
     private String hostaddress;
     private String hostport;
-    private String description;
-    private String version;
-    private String opensearchversion;
-
     // Change the location to extension.yml file of the extension
     public static final String EXTENSION_DESCRIPTOR = "src/test/resources/extension.yml";
 
@@ -36,27 +43,9 @@ public class ExtensionSettings {
         this.hostport = hostport;
     }
 
-    public String getDescription() {
-        return description;
+    @Override
+    public String toString() {
+        return "\nnodename: " + extensionname + "\nhostaddress: " + hostaddress + "\nhostPort: " + hostport + "\n";
     }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public String getOpensearchversion() {
-        return opensearchversion;
-    }
-
-    public void setOpensearchversion(String opensearchversion) {
-        this.opensearchversion = opensearchversion;
-    }
 }

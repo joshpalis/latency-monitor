@@ -30,7 +30,7 @@
  * GitHub history for details.
  */
 
-package org.opensearch.latencytester.transportservice;
+package org.opensearch.latencytester.transportservice.netty4;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;

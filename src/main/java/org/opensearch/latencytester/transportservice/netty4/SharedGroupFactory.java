@@ -30,17 +30,17 @@
  * GitHub history for details.
  */
 
-package org.opensearch.latencytester.transportservice;
+package org.opensearch.latencytester.transportservice.netty4;
 
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.Future;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.util.concurrent.AbstractRefCounted;
 import org.opensearch.transport.TcpTransport;
-import org.opensearch.latencytester.transportservice.netty4.Netty4Transport;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -8,15 +8,6 @@
 # Modifications Copyright OpenSearch Contributors. See
 # GitHub history for details.
 #
-
-description: 'Example Extension File'
-
-version: 'Version of plugin'
-
-opensearchversion: 'OpenSearch Version'
-
 extensionname: extension
-
 hostaddress: 127.0.0.1
-
 hostport: 4532

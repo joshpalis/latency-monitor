@@ -1,3 +1,11 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
+
 package org.opensearch.latencytester.transportservice;
 
 import org.opensearch.common.SuppressForbidden;
@@ -7,7 +15,11 @@ import org.opensearch.transport.TransportRequestOptions;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 public class ActionListener {
 
