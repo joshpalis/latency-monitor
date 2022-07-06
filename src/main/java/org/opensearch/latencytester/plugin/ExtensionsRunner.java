@@ -20,6 +20,7 @@ import org.opensearch.cluster.ClusterModule;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.common.io.stream.NamedWriteableRegistryResponse;
+import org.opensearch.common.io.stream.Writeable;
 import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.Settings;
@@ -52,6 +53,7 @@ import org.opensearch.latencytester.transportservice.netty4.SharedGroupFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -66,6 +68,12 @@ import static org.opensearch.common.UUIDs.randomBase64UUID;
 public class ExtensionsRunner {
     private ExtensionSettings extensionSettings = readExtensionSettings();
     private DiscoveryNode opensearchNode;
+
+    // new implementation : Extension NamedWriteableRegistry
+    private List<NamedWriteableRegistry.Entry> extensionNamedWriteables = getNamedWriteables();
+
+    // new implementation : Validate named writeable entries by creating NamedWriteableRegistry, we will utilize getReader to retrieve reader for parsing
+    final NamedWriteableRegistry extensionNamedWriteableRegistry = new NamedWriteableRegistry(extensionNamedWriteables);
 
     public ExtensionsRunner() throws IOException {}
 
@@ -83,6 +91,23 @@ public class ExtensionsRunner {
         ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
         ExtensionSettings extensionSettings = objectMapper.readValue(file, ExtensionSettings.class);
         return extensionSettings;
+    }
+
+    // new implementation : SDK creates its own named writeable registry
+    private List<NamedWriteableRegistry.Entry> getNamedWriteables() {
+
+        List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
+
+        // this is where an extension passes in entries, similar to getNamedWriteables override
+        entries.add(
+            new NamedWriteableRegistry.Entry(
+                DocValueFormat.class,
+                ICUCollationKeywordFieldMapper.CollationFieldType.COLLATE_FORMAT.getWriteableName(), // or just put dummy string
+                in -> ICUCollationKeywordFieldMapper.CollationFieldType.COLLATE_FORMAT
+            )
+        );
+
+        return entries;
     }
 
     private void setOpensearchNode(DiscoveryNode opensearchNode) {
@@ -103,17 +128,42 @@ public class ExtensionsRunner {
 
     NamedWriteableRegistryResponse handleNamedWriteableRegistryRequest(ExtensionRequest request) {
 
-        logger.info("======================== NAMED WRITEABLE REGISTRY RESPONSE HIT");
+        logger.info("Recieved Named Writeable Registry request.");
 
-        // create map for registry entries to send over the wire
-        Map<String, String> registry = new HashMap<>();
+        // create map for entries to send over the wire
+        Map<String, String> extensionEntries = new HashMap<>();
 
-        // test entries
-        registry.put("test_key", DocValueFormat.class.getName());
+        // iterate through Extensions's named writeables and add to extension entries
+        for(NamedWriteableRegistry.Entry entry : this.extensionNamedWriteables) {
+            extensionEntries.put(entry.name, entry.categoryClass.getName());
+        }
 
         // create and return named writeable registry response
-        NamedWriteableRegistryResponse namedWriteableRegistryResponse = new NamedWriteableRegistryResponse(registry);
+        NamedWriteableRegistryResponse namedWriteableRegistryResponse = new NamedWriteableRegistryResponse(extensionEntries);
         return namedWriteableRegistryResponse;
+    }
+
+
+    // new implementation : named writeable registry parse request handler
+    NamedWriteableRegistryParseResponse handleNamedWriteableRegistryParseRequest(NamedWriteableRegistryParseRequest request) {
+
+        logger.info("Recieved Named Writeable Registry parse request.");
+
+        // 1) Extract name and category class fully qualified name from request
+        String name = request.getName();
+        Class<?> categoryClass = Class.forName(request.getCategoryClassName);
+
+        // 2) Search SDK Registry for named writeable reader
+        Writeable.Reader<?> reader = extensionNamedWriteableRegistry.getReader(categoryClass, name);
+
+        // 3) retrieve reader and apply reader to byte array context
+        // it is possible to create a streaminput() from a byte reference, perhaps consider sending over a byte reference across the wire
+        // reader.read(in);
+
+        // 4) Create object and pass into response
+
+        // NamedWriteableRegistryParseResponse namedWriteableRegistryParseResponse = new NamedWriteableRegistryParseResponse( );
+        // return namedWriteableRegistryParseResponse;
     }
 
     IndicesModuleResponse handleIndicesModuleRequest(IndicesModuleRequest indicesModuleRequest, TransportService transportService) {
@@ -218,6 +268,14 @@ public class ExtensionsRunner {
             false,
             ExtensionRequest::new,
             (request, channel, task) -> channel.sendResponse(handleNamedWriteableRegistryRequest(request))
+        );
+
+        // request handler : parse request handler from OpenSearch
+        transportService.registerRequestHandler(
+            ExtensionsOrchestrator.REQUEST_EXTENSION_PARSE_NAMED_WRITEABLE,
+            ThreadPool.Names.GENERIC,
+            NamedWriteableRegistryParseRequest::new, 
+            (request, channel, task) -> channel.sendResponse(handleNamedWriteableRegistryParseRequest(request))
         );
 
         // temporarily commenting out request handlers for indices extension point support for named writeable testing purposes
