@@ -161,28 +161,20 @@ public class ExtensionsRunner {
 
         // extract data from request and procress fully qualified category class name into class instance
         try{
-            String name = request.getName();
             Class<C> categoryClass = (Class<C>) request.getCategoryClass();
             byte[] context = request.getContext();
             
-            // extract corresponding reader from SDK registry
-            Writeable.Reader<?> reader = extensionNamedWriteableRegistry.getReader(categoryClass, name);
-
             // transform byte array context into an input stream
             try(InputStream inputStream = new ByteArrayInputStream(context, 0, context.length)){
 
                 // convert input stream to stream input
                 try(StreamInput streamInput = new NamedWriteableAwareStreamInput(new InputStreamStreamInput(inputStream), extensionNamedWriteableRegistry)){
 
-                    // apply writeable reader to byte array context turn stream input
-                    C c = (C) reader.read(streamInput);
-                    if (c == null) {
-                        throw new IOException(
-                            "Writeable.Reader [" + reader + "] returned null which is not allowed and probably means it screwed up the stream."
-                        );
-                    } else{
-                        data = c.toString();
-                    }
+                    // NamedWriteableAwareStreamInput extracts name from StreamInput, then uses both category class and name to extract reader from provided registry
+                    // reader is then applied to the StreamInput object generated from the byte array (context)
+                    C c = streamInput.readNamedWriteable(categoryClass);
+
+                    data = c.toString();
                 }
             }
         }
@@ -227,7 +219,7 @@ public class ExtensionsRunner {
             ClusterModule.getNamedWriteables().stream()
         ).flatMap(Function.identity()).collect(Collectors.toList());
 
-        
+
 
         final NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(namedWriteables);
 
