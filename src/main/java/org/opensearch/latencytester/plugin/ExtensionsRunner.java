@@ -36,6 +36,7 @@ import org.opensearch.indices.IndicesModule;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.indices.breaker.NoneCircuitBreakerService;
 import org.opensearch.search.DocValueFormat;
+import org.opensearch.tasks.Task;
 import org.opensearch.search.SearchModule;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.ClusterConnectionManager;
@@ -51,9 +52,11 @@ import org.opensearch.latencytester.transportservice.LocalNodeResponseHandler;
 import org.opensearch.latencytester.transportservice.netty4.Netty4Transport;
 import org.opensearch.latencytester.transportservice.netty4.SharedGroupFactory;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -96,18 +99,15 @@ public class ExtensionsRunner {
     // new implementation : SDK creates its own named writeable registry
     private List<NamedWriteableRegistry.Entry> getNamedWriteables() {
 
-        List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
-
-        // this is where an extension passes in entries, similar to getNamedWriteables override
-        entries.add(
+        List<NamedWriteableRegistry.Entry> namedWriteables = new ArrayList<>();
+        namedWriteables.add(
             new NamedWriteableRegistry.Entry(
-                DocValueFormat.class,
-                ICUCollationKeywordFieldMapper.CollationFieldType.COLLATE_FORMAT.getWriteableName(), // or just put dummy string
-                in -> ICUCollationKeywordFieldMapper.CollationFieldType.COLLATE_FORMAT
+                Task.Status.class,
+                TestReader.NAME,
+                TestReader::new
             )
         );
-
-        return entries;
+        return namedWriteables;
     }
 
     private void setOpensearchNode(DiscoveryNode opensearchNode) {
@@ -151,7 +151,8 @@ public class ExtensionsRunner {
 
         // 1) Extract name and category class fully qualified name from request
         String name = request.getName();
-        Class<?> categoryClass = Class.forName(request.getCategoryClassName);
+        Class<?> categoryClass = request.getCateogryClass();
+        byte[] context = request.getContext();
 
         // 2) Search SDK Registry for named writeable reader
         Writeable.Reader<?> reader = extensionNamedWriteableRegistry.getReader(categoryClass, name);
