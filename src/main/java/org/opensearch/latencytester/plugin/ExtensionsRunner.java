@@ -41,7 +41,6 @@ import org.opensearch.index.IndicesModuleResponse;
 import org.opensearch.indices.IndicesModule;
 import org.opensearch.indices.breaker.CircuitBreakerService;
 import org.opensearch.indices.breaker.NoneCircuitBreakerService;
-import org.opensearch.search.DocValueFormat;
 import org.opensearch.tasks.Task;
 import org.opensearch.search.SearchModule;
 import org.opensearch.threadpool.ThreadPool;
@@ -63,7 +62,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -228,6 +226,8 @@ public class ExtensionsRunner {
             null,
             ClusterModule.getNamedWriteables().stream()
         ).flatMap(Function.identity()).collect(Collectors.toList());
+
+        
 
         final NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(namedWriteables);
 
