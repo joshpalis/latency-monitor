@@ -18,8 +18,14 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.Version;
 import org.opensearch.cluster.ClusterModule;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.common.io.stream.InputStreamStreamInput;
+import org.opensearch.common.io.stream.NamedWriteable;
+import org.opensearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.opensearch.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.common.io.stream.NamedWriteableRegistryParseRequest;
+import org.opensearch.common.io.stream.NamedWriteableRegistryParseResponse;
 import org.opensearch.common.io.stream.NamedWriteableRegistryResponse;
+import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.Writeable;
 import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.network.NetworkService;
@@ -52,9 +58,10 @@ import org.opensearch.latencytester.transportservice.LocalNodeResponseHandler;
 import org.opensearch.latencytester.transportservice.netty4.Netty4Transport;
 import org.opensearch.latencytester.transportservice.netty4.SharedGroupFactory;
 
-
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,7 +80,11 @@ public class ExtensionsRunner {
     private DiscoveryNode opensearchNode;
 
     // new implementation : Extension NamedWriteableRegistry
-    private List<NamedWriteableRegistry.Entry> extensionNamedWriteables = getNamedWriteables();
+    private List<NamedWriteableRegistry.Entry> extensionNamedWriteables = Stream.of(
+                NetworkModule.getNamedWriteables().stream(),
+                ClusterModule.getNamedWriteables().stream(),
+                getNamedWriteables().stream()
+            ).flatMap(Function.identity()).collect(Collectors.toList());
 
     // new implementation : Validate named writeable entries by creating NamedWriteableRegistry, we will utilize getReader to retrieve reader for parsing
     final NamedWriteableRegistry extensionNamedWriteableRegistry = new NamedWriteableRegistry(extensionNamedWriteables);
@@ -145,26 +156,44 @@ public class ExtensionsRunner {
 
 
     // new implementation : named writeable registry parse request handler
-    NamedWriteableRegistryParseResponse handleNamedWriteableRegistryParseRequest(NamedWriteableRegistryParseRequest request) {
+    <C extends NamedWriteable> NamedWriteableRegistryParseResponse handleNamedWriteableRegistryParseRequest(NamedWriteableRegistryParseRequest request) throws IOException {
 
         logger.info("Recieved Named Writeable Registry parse request.");
+        String data = "";
 
-        // 1) Extract name and category class fully qualified name from request
-        String name = request.getName();
-        Class<?> categoryClass = request.getCateogryClass();
-        byte[] context = request.getContext();
+        // extract data from request and procress fully qualified category class name into class instance
+        try{
+            String name = request.getName();
+            Class<C> categoryClass = (Class<C>) request.getCategoryClass();
+            byte[] context = request.getContext();
+            
+            // extract corresponding reader from SDK registry
+            Writeable.Reader<?> reader = extensionNamedWriteableRegistry.getReader(categoryClass, name);
 
-        // 2) Search SDK Registry for named writeable reader
-        Writeable.Reader<?> reader = extensionNamedWriteableRegistry.getReader(categoryClass, name);
+            // transform byte array context into an input stream
+            try(InputStream inputStream = new ByteArrayInputStream(context, 0, context.length)){
 
-        // 3) retrieve reader and apply reader to byte array context
-        // it is possible to create a streaminput() from a byte reference, perhaps consider sending over a byte reference across the wire
-        // reader.read(in);
+                // convert input stream to stream input
+                try(StreamInput streamInput = new NamedWriteableAwareStreamInput(new InputStreamStreamInput(inputStream), extensionNamedWriteableRegistry)){
 
-        // 4) Create object and pass into response
-
-        // NamedWriteableRegistryParseResponse namedWriteableRegistryParseResponse = new NamedWriteableRegistryParseResponse( );
-        // return namedWriteableRegistryParseResponse;
+                    // apply writeable reader to byte array context turn stream input
+                    C c = (C) reader.read(streamInput);
+                    if (c == null) {
+                        throw new IOException(
+                            "Writeable.Reader [" + reader + "] returned null which is not allowed and probably means it screwed up the stream."
+                        );
+                    } else{
+                        data = c.toString();
+                    }
+                }
+            }
+        }
+        catch(ClassNotFoundException e){
+            logger.info(e);
+        }
+    
+        NamedWriteableRegistryParseResponse namedWriteableRegistryParseResponse = new NamedWriteableRegistryParseResponse(data);
+        return namedWriteableRegistryParseResponse;
     }
 
     IndicesModuleResponse handleIndicesModuleRequest(IndicesModuleRequest indicesModuleRequest, TransportService transportService) {
