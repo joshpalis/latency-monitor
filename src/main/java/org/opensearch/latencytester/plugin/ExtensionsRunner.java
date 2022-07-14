@@ -24,6 +24,7 @@ import org.opensearch.common.io.stream.NamedWriteableAwareStreamInput;
 import org.opensearch.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.common.io.stream.NamedWriteableRegistryParseRequest;
 import org.opensearch.common.io.stream.NamedWriteableRegistryParseResponse;
+import org.opensearch.common.io.stream.NamedWriteableRegistryRequest;
 import org.opensearch.common.io.stream.NamedWriteableRegistryResponse;
 import org.opensearch.common.io.stream.StreamInput;
 import org.opensearch.common.io.stream.Writeable;
@@ -77,15 +78,12 @@ public class ExtensionsRunner {
     private ExtensionSettings extensionSettings = readExtensionSettings();
     private DiscoveryNode opensearchNode;
 
-    // new implementation : Extension NamedWriteableRegistry
     private List<NamedWriteableRegistry.Entry> extensionNamedWriteables = Stream.of(
                 NetworkModule.getNamedWriteables().stream(),
                 ClusterModule.getNamedWriteables().stream(),
                 getNamedWriteables().stream()
             ).flatMap(Function.identity()).collect(Collectors.toList());
-
-    // new implementation : Validate named writeable entries by creating NamedWriteableRegistry, we will utilize getReader to retrieve reader for parsing
-    final NamedWriteableRegistry extensionNamedWriteableRegistry = new NamedWriteableRegistry(extensionNamedWriteables);
+    final private NamedWriteableRegistry extensionNamedWriteableRegistry = new NamedWriteableRegistry(extensionNamedWriteables);
 
     public ExtensionsRunner() throws IOException {}
 
@@ -105,7 +103,6 @@ public class ExtensionsRunner {
         return extensionSettings;
     }
 
-    // new implementation : SDK creates its own named writeable registry
     private List<NamedWriteableRegistry.Entry> getNamedWriteables() {
 
         List<NamedWriteableRegistry.Entry> namedWriteables = new ArrayList<>();
@@ -135,25 +132,19 @@ public class ExtensionsRunner {
         return pluginResponse;
     }
 
-    NamedWriteableRegistryResponse handleNamedWriteableRegistryRequest(ExtensionRequest request) {
+    NamedWriteableRegistryResponse handleNamedWriteableRegistryRequest(NamedWriteableRegistryRequest request) {
 
         logger.info("Recieved Named Writeable Registry request.");
 
-        // create map for entries to send over the wire
-        Map<String, String> extensionEntries = new HashMap<>();
-
         // iterate through Extensions's named writeables and add to extension entries
+        Map<String, String> extensionEntries = new HashMap<>();
         for(NamedWriteableRegistry.Entry entry : this.extensionNamedWriteables) {
             extensionEntries.put(entry.name, entry.categoryClass.getName());
         }
-
-        // create and return named writeable registry response
         NamedWriteableRegistryResponse namedWriteableRegistryResponse = new NamedWriteableRegistryResponse(extensionEntries);
         return namedWriteableRegistryResponse;
     }
 
-
-    // new implementation : named writeable registry parse request handler
     <C extends NamedWriteable> NamedWriteableRegistryParseResponse handleNamedWriteableRegistryParseRequest(NamedWriteableRegistryParseRequest request) throws IOException {
 
         logger.info("Recieved Named Writeable Registry parse request.");
@@ -174,6 +165,7 @@ public class ExtensionsRunner {
                     // reader is then applied to the StreamInput object generated from the byte array (context)
                     C c = streamInput.readNamedWriteable(categoryClass);
 
+                    // temporary : remove later
                     data = c.toString();
                 }
             }
@@ -282,17 +274,16 @@ public class ExtensionsRunner {
             (request, channel, task) -> channel.sendResponse(handlePluginsRequest(request))
         );
 
-        // request handler : inital named writeable entries to OpenSearch
         transportService.registerRequestHandler(
             ExtensionsOrchestrator.REQUEST_EXTENSION_NAMED_WRITEABLE_REGISTRY,
             ThreadPool.Names.GENERIC,
             false,
             false,
-            ExtensionRequest::new,
+            NamedWriteableRegistryRequest::new,
             (request, channel, task) -> channel.sendResponse(handleNamedWriteableRegistryRequest(request))
         );
 
-        // request handler : parse request handler from OpenSearch
+        // request handler : parse request handler from OpenSearch temporarily triggered within indices service
         transportService.registerRequestHandler(
             ExtensionsOrchestrator.REQUEST_EXTENSION_PARSE_NAMED_WRITEABLE,
             ThreadPool.Names.GENERIC,
