@@ -10,6 +10,7 @@
  */
 
 package org.opensearch.latencytester.plugin;
+
 import java.io.IOException;
 
 import org.opensearch.common.io.stream.StreamOutput;
@@ -24,7 +25,7 @@ import org.opensearch.tasks.*;
 
 public class TestReader implements Task.Status {
 
-    private final Logger logger = LogManager.getLogger(TestReader.class); 
+    private final Logger logger = LogManager.getLogger(TestReader.class);
     public static final String NAME = "TestReaderName";
 
     final String status;
@@ -74,13 +75,12 @@ public class TestReader implements Task.Status {
             return false;
         }
         TestReader that = (TestReader) o;
-        return Objects.equals(status, that.status)
-            && Objects.equals(code, that.code);
+        return Objects.equals(status, that.status) && Objects.equals(code, that.code);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(status, code);
     }
-    
+
 }

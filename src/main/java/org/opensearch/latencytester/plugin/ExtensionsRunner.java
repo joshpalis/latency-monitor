@@ -27,7 +27,6 @@ import org.opensearch.common.io.stream.NamedWriteableRegistryParseResponse;
 import org.opensearch.common.io.stream.NamedWriteableRegistryRequest;
 import org.opensearch.common.io.stream.NamedWriteableRegistryResponse;
 import org.opensearch.common.io.stream.StreamInput;
-import org.opensearch.common.io.stream.Writeable;
 import org.opensearch.common.network.NetworkModule;
 import org.opensearch.common.network.NetworkService;
 import org.opensearch.common.settings.Settings;
@@ -79,10 +78,10 @@ public class ExtensionsRunner {
     private DiscoveryNode opensearchNode;
 
     private List<NamedWriteableRegistry.Entry> extensionNamedWriteables = Stream.of(
-                NetworkModule.getNamedWriteables().stream(),
-                ClusterModule.getNamedWriteables().stream(),
-                getNamedWriteables().stream()
-            ).flatMap(Function.identity()).collect(Collectors.toList());
+        NetworkModule.getNamedWriteables().stream(),
+        ClusterModule.getNamedWriteables().stream(),
+        getNamedWriteables().stream()
+    ).flatMap(Function.identity()).collect(Collectors.toList());
     final private NamedWriteableRegistry extensionNamedWriteableRegistry = new NamedWriteableRegistry(extensionNamedWriteables);
 
     public ExtensionsRunner() throws IOException {}
@@ -106,13 +105,7 @@ public class ExtensionsRunner {
     private List<NamedWriteableRegistry.Entry> getNamedWriteables() {
 
         List<NamedWriteableRegistry.Entry> namedWriteables = new ArrayList<>();
-        namedWriteables.add(
-            new NamedWriteableRegistry.Entry(
-                Task.Status.class,
-                TestReader.NAME,
-                TestReader::new
-            )
-        );
+        namedWriteables.add(new NamedWriteableRegistry.Entry(Task.Status.class, TestReader.NAME, TestReader::new));
         return namedWriteables;
     }
 
@@ -138,30 +131,38 @@ public class ExtensionsRunner {
 
         // iterate through Extensions's named writeables and add to extension entries
         Map<String, String> extensionEntries = new HashMap<>();
-        for(NamedWriteableRegistry.Entry entry : this.extensionNamedWriteables) {
+        for (NamedWriteableRegistry.Entry entry : this.extensionNamedWriteables) {
             extensionEntries.put(entry.name, entry.categoryClass.getName());
         }
         NamedWriteableRegistryResponse namedWriteableRegistryResponse = new NamedWriteableRegistryResponse(extensionEntries);
         return namedWriteableRegistryResponse;
     }
 
-    <C extends NamedWriteable> NamedWriteableRegistryParseResponse handleNamedWriteableRegistryParseRequest(NamedWriteableRegistryParseRequest request) throws IOException {
+    <C extends NamedWriteable> NamedWriteableRegistryParseResponse handleNamedWriteableRegistryParseRequest(
+        NamedWriteableRegistryParseRequest request
+    ) throws IOException {
 
         logger.info("Recieved Named Writeable Registry parse request.");
         String data = "";
 
         // extract data from request and procress fully qualified category class name into class instance
-        try{
+        try {
             Class<C> categoryClass = (Class<C>) request.getCategoryClass();
             byte[] context = request.getContext();
-            
+
             // transform byte array context into an input stream
-            try(InputStream inputStream = new ByteArrayInputStream(context, 0, context.length)){
+            try (InputStream inputStream = new ByteArrayInputStream(context, 0, context.length)) {
 
                 // convert input stream to stream input
-                try(StreamInput streamInput = new NamedWriteableAwareStreamInput(new InputStreamStreamInput(inputStream), extensionNamedWriteableRegistry)){
+                try (
+                    StreamInput streamInput = new NamedWriteableAwareStreamInput(
+                        new InputStreamStreamInput(inputStream),
+                        extensionNamedWriteableRegistry
+                    )
+                ) {
 
-                    // NamedWriteableAwareStreamInput extracts name from StreamInput, then uses both category class and name to extract reader from provided registry
+                    // NamedWriteableAwareStreamInput extracts name from StreamInput, then uses both category class and name to extract
+                    // reader from provided registry
                     // reader is then applied to the StreamInput object generated from the byte array (context)
                     C c = streamInput.readNamedWriteable(categoryClass);
 
@@ -169,11 +170,10 @@ public class ExtensionsRunner {
                     data = c.toString();
                 }
             }
-        }
-        catch(ClassNotFoundException e){
+        } catch (ClassNotFoundException e) {
             logger.info(e);
         }
-    
+
         NamedWriteableRegistryParseResponse namedWriteableRegistryParseResponse = new NamedWriteableRegistryParseResponse(data);
         return namedWriteableRegistryParseResponse;
     }
@@ -210,8 +210,6 @@ public class ExtensionsRunner {
             null,
             ClusterModule.getNamedWriteables().stream()
         ).flatMap(Function.identity()).collect(Collectors.toList());
-
-
 
         final NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(namedWriteables);
 
@@ -287,7 +285,7 @@ public class ExtensionsRunner {
         transportService.registerRequestHandler(
             ExtensionsOrchestrator.REQUEST_EXTENSION_PARSE_NAMED_WRITEABLE,
             ThreadPool.Names.GENERIC,
-            NamedWriteableRegistryParseRequest::new, 
+            NamedWriteableRegistryParseRequest::new,
             (request, channel, task) -> channel.sendResponse(handleNamedWriteableRegistryParseRequest(request))
         );
 
